@@ -107,27 +107,38 @@ class SimReader(object):
         self._add_attrs()
 
     def get_primary(self):
-        pass
+        try:
+            primary = getattr(self, 'GUN')
+        except AttributeError:
+            return None
+        return primary
 
-    def find_hits_tracking(self, det_name, n_copy):
+    def find_hits(self, det_name, det_type='calorimeter', n_copy=1, pid=11):
         try:
             det = getattr(self, det_name)
         except AttributeError:
             return None
 
         is_primary = det.PTID.content == 0
-        fired_did_list = numpy.split(det.DID.content, det.DID.stops)[:-1]
+        pid_correct = det.PID.content == pid
+        is_good = is_primary & pid_correct
 
-        found = []
-        for copyid in range(n_copy):
-            found_in_copy = []
-            for i in range(len(fired_did_list)):
-                if copyid in fired_did_list[i]:
+        if det_type == 'tracking':
+            found = []
+            fired_did_list = numpy.split(det.DID.content, det.DID.stops)[:-1]
+            for copyid in range(n_copy):
+                found_in_copy = []
+                for i in range(len(fired_did_list)):
                     index_list = det.DID.starts[i] + numpy.nonzero(fired_did_list[i] == copyid)[0]  # 0 means x axis
-                    if any(is_primary[index_list]):
-                        found_in_copy.append(index_list[is_primary[index_list]][0])
-                else:
-                    found_in_copy.append(-1)
-            found.append(numpy.array(found_in_copy))
+                    found_in_copy.append(index_list[is_good[index_list]][0] if any(is_good[index_list]) else -1)
+                found.append(numpy.array(found_in_copy))
+            return found
+        elif det_type == 'standard' or det_type == 'calorimeter':
+            found = []
+            primary_list = numpy.split(is_primary, det.PTID.stops)[:-1]
+            for i in range(len(primary_list)):
+                index_list = det.PTID.starts[i] + numpy.nonzero(primary_list[i])[0]  # 0 means x axis
+                found.append(index_list[is_good[index_list]][0] if any(is_good[index_list]) else -1)
+            return numpy.array(found)
 
-        return found
+        return None
