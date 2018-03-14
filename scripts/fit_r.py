@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from __future__ import division, print_function
 
@@ -84,7 +84,7 @@ pool = multiprocessing.Pool()
 
 for f in list_model_fit:
     for g in list_model_gen:
-        pool.apply_async(do_fit, args=(100, f, g, 2.130, l))
+        pool.apply_async(do_fit, args=(100, g, f, 2.130, l))
 
 pool.close()
 pool.join()

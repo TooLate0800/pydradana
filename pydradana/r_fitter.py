@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # For python 2-3 compatibility
 from __future__ import division, print_function
@@ -9,18 +9,22 @@ import math
 import numpy
 from numpy.random import normal, uniform
 from lmfit import Minimizer, Parameters, fit_report
+from scipy import constants
 from scipy.interpolate import interp1d
 
+from . import _form_factors
+
+__all__ = ['RFitter']
+
 # Constants
-_mp = 0.938272  # GeV
-_md = 1.875612928  # GeV
-_fm = 0.1973269718  # fm^{-1} to GeV
+_inv_fm_to_gev = constants.hbar * constants.c / constants.e * 1e6  # fm^{-1} to GeV
+_gev_to_inv_fm = 1 / _inv_fm_to_gev
 
 
-class RFitter():
+class RFitter(object):
 
     def __init__(self):
-        self._tc = 4 * 0.14**2 / _fm**2  # 4 * m_pi**2
+        self._tc = 4 * 0.140**2 * _gev_to_inv_fm**2  # 4 * m_pi**2
         self.q2_raw, self.dq2_raw, self.ge_raw, self.dge_raw = None, None, None, None
         self.q2, self.dq2, self.ge, self.dge = None, None, None, None
         self.range = None
@@ -70,60 +74,12 @@ class RFitter():
     def _continued_fractional(q2, p, order, *args, **kwargs):
         return p[0] / reduce(lambda x, y: 1 + y / x, [1] + [p[i] * q2 for i in range(order[0], 0, -1)])
 
-    # Proton form factors
-    @staticmethod
-    def _arrington_2004(q2, *args, **kwargs):
-        # J. Arrington, Phys. Rev. C 69(2004)022201
-        q2_gev = q2 * _fm**2
-        a = [0, 3.226, 1.508, -0.3773, 0.611, -0.1853, 1.596e-2]
-        return 1 / (1 + sum([a[i] * q2_gev**i for i in range(1, 7)]))
-
-    @staticmethod
-    def _kelly_2004(q2, *args, **kwargs):
-        # J. J. Kelly, Phys. Rev. C 70(2004)068202
-        tau = q2 * _fm**2 / (4 * _mp**2)
-        a = [0, -0.24]
-        b = [0, 10.98, 12.82, 21.97]
-        return (1 + tau * a[1]) / (1 + sum([b[i] * tau**i for i in range(1, 4)]))
-
-    @staticmethod
-    def _venkat_2011(q2, *args, **kwargs):
-        # S. Venkat, J. Arrington, G. A. Miller, and X. Zhan, Phys. Rev. C 83(2011)015203
-        tau = q2 * _fm**2 / (4 * _mp**2)
-        a = [0, 2.90966, -1.11542229, 3.866171e-2]
-        b = [0, 14.5187212, 40.88333, 99.999998, 4.579e-5, 10.3580447]
-        return (1 + sum([a[i] * tau**i for i in range(1, 4)])) / (1 + sum([b[i] * tau**i for i in range(1, 6)]))
-
-    # Deuteron form factors
-    @staticmethod
-    def _abbott_2000_1(q2, *args, **kwargs):
-        # Parameterization I in Eur. Phys. J A 7(2000)421
-        g0, q0 = 1, 4.21
-        a = [0, 6.740e-1, 2.246e-2, 9.806e-3, -2.709e-4, 3.793e-6]
-        return g0 * (1 - q2 / q0**2) / (1 + sum([a[i] * q2**i for i in range(1, 6)]))
-
-    @staticmethod
-    def _abbott_2000_2(q2, *args, **kwargs):
-        # Parameterization II in Eur. Phys. J A 7(2000)421
-        eta = q2 / (4 * (_md / _fm)**2)
-        delta = (0.89852 / _fm)**2
-        gq2 = 1 / (1 + q2 / (4 * delta))**2
-        a = [1.57057, 12.23792, -42.04576, 27.92014]
-        alpha = [1.52501, 8.75139, 15.97777, 23.20415]
-        b = [0.07043, 0.14443, -0.27343, 0.05856]
-        beta = [43.67795, 30.05435, 16.43075, 2.80716]
-        c = [-0.16577, 0.27557, -0.05382, -0.05598]
-        gamma = [1.87055, 14.95683, 28.04312, 41.12940]
-        g0 = sum([a[i] / (alpha[i] + q2) for i in range(4)])
-        g1 = numpy.sqrt(q2) * sum([b[i] / (beta[i] + q2) for i in range(4)])
-        g2 = q2 * sum([c[i] / (gamma[i] + q2) for i in range(4)])
-        return gq2**2 / (2 * eta + 1) * ((1 - 2 / 3 * eta) * g0 + 8 / 3 * numpy.sqrt(2 * eta) * g1 + 2 / 3 * (2 * eta - 1) * g2)
-
     # Form factors from file
     @staticmethod
-    def _ff_file(q2, file_name):
+    def _ff_file(q2, file_name, unit='GeV'):
         q2_model, ge_model = numpy.loadtxt(file_name, usecols=(0, 1), unpack=True)
-        q2_model = q2_model / _fm**2
+        if unit == 'GeV':
+            q2_model = q2_model * _gev_to_inv_fm**2
         spl = interp1d(q2_model, ge_model, kind='cubic')
         return spl(q2)
 
@@ -155,31 +111,25 @@ class RFitter():
     def set_range(self, lo=0.0, hi=0.5):
         self.range = [lo, hi]
 
-    def gen_model(self, model='dipole', r0=2.130):
+    def gen_model(self, model='dipole', r0=2.130, *args, **kwargs):
         model_func = {
-            'monopole': self._monopole,
-            'dipole': self._dipole,
-            'gaussian': self._gaussian,
-            'Arrington-2004': self._arrington_2004,
-            'Kelly-2004': self._kelly_2004,
-            'Venkat-2011': self._venkat_2011,
-            'Abbott-2000-1': self._abbott_2000_1,
-            'Abbott-2000-2': self._abbott_2000_2,
+            'monopole': _form_factors.monopole,
+            'dipole': _form_factors.dipole,
+            'gaussian': _form_factors.gaussian,
+            'Arrington-2004': _form_factors.arrington_2004,
+            'Kelly-2004': _form_factors.kelly_2004,
+            'Venkat-2011': _form_factors.venkat_2011,
+            'Abbott-2000-1': _form_factors.abbott_2000_1,
+            'Abbott-2000-2': _form_factors.abbott_2000_2,
         }.get(model, None)
-
-        p = [1, 0]
-        if model == 'monopole' or model == 'gaussian':
-            p[1] = 6 / r0**2
-        elif model == 'dipole':
-            p[1] = 12 / r0**2
 
         if self.q2_raw is None:
             self.load_data('bin_errors.dat')
 
         if model_func is not None:
-            self.ge_raw = model_func(self.q2_raw, p)
+            self.ge_raw, _, _ = model_func(self.q2_raw, r0)
         else:
-            self.ge_raw = self._ff_file(self.q2_raw, file_name=model + '.dat')
+            self.ge_raw = self._ff_file(self.q2_raw, file_name=model + '.dat', *args, **kwargs)
 
     def add_noise(self, model='gaussian', *args, **kwargs):
         if model == 'uniform':
@@ -269,13 +219,3 @@ class RFitter():
             r = math.sqrt(-1.5 * p1 / self._tc)
 
         return r, chisqr
-
-
-if __name__ == '__main__':
-    f = RFitter()
-    f.load_data('bin_errors.dat')
-    f.gen_model('dipole')
-    f.add_noise('gaussian')
-    f.set_range(0, 2)
-    rfit, chi2 = f.fit(model='dipole', method='least_squares')
-    print('r = {:10.6f}, chisqr = {:10.6f}'.format(rfit, chi2))
