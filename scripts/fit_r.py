@@ -8,7 +8,7 @@ from os.path import exists, join
 
 import matplotlib
 matplotlib.use('PDF')
-from matplotlib import pyplot
+import matplotlib.pyplot as plt
 import numpy
 from scipy.optimize import curve_fit
 
@@ -62,15 +62,15 @@ def do_fit(N=100000, model_gen='dipole', model_fit='dipole', r0=2.130, lock=None
 
     font = {'size': 12}
 
-    fig = pyplot.figure()
-    ax = pyplot.gca()
-    pyplot.xlabel(r'$r/fm$', fontdict=font)
-    pyplot.hist(result, bins=200, range=(r_d, r_u), histtype='step')
+    fig = plt.figure()
+    ax = plt.gca()
+    plt.xlabel(r'$r/fm$', fontdict=font)
+    plt.hist(result, bins=200, range=(r_d, r_u), histtype='step')
     if popt is not None:
-        pyplot.plot(x, gaus(x, *popt), label='fit')
-    pyplot.text(0.1, 0.8, r'$r\,={:6.4f}$'.format(r_mean) + '\n' + r'$\sigma={:6.4f}$'.format(r_std), transform=ax.transAxes, fontdict=font)
+        plt.plot(x, gaus(x, *popt), label='fit')
+    plt.text(0.1, 0.8, r'$r\,={:6.4f}$'.format(r_mean) + '\n' + r'$\sigma={:6.4f}$'.format(r_std), transform=ax.transAxes, fontdict=font)
     fig.savefig(join(output_path, '{}-{}.pdf'.format(model_gen, model_fit_string)))
-    pyplot.close()
+    plt.close()
 
 
 if exists(join(output_path, 'result.dat')):

@@ -3,6 +3,8 @@
 # For python 2-3 compatibility
 from __future__ import division, print_function
 
+import math
+
 import numpy
 from scipy import constants
 
@@ -37,7 +39,29 @@ def _mott(ei_e, theta_e):
 
 
 def ee(ei_1, theta_1):
-    pass
+    # sin_theta = numpy.sin(theta_1)
+    cos_theta = numpy.cos(theta_1)
+    C = (ei_1 - _m_e) * cos_theta**2
+    ef_1 = _m_e * (ei_1 + _m_e + C) / (ei_1 + _m_e - C)
+
+    pi_1 = math.sqrt(ei_1**2 - _m2_e)
+    pf_1 = numpy.sqrt(ef_1**2 - _m2_e)
+
+    # vi_1 = [0, 0, pi_1, ei_1]
+    # vi_2 = [0, 0, 0, _m_e]
+    # vf_1 = [pf_1 * sin_theta, 0, pf_1 * cos_theta, ef_1]
+    # s = (ei_1 + _m_e)**2 - pi_1**2  # (vi_1 + vi_2) * (vi_1 + vi_2)
+    # t = (ef_1 - ei_1)**2 - (pf_1 * sin_theta)**2 - (pf_1 * cos_theta - pi_1)**2  # (vf_1 - vi_1) * (vf_1 - vi_1)
+    # u = (ef_1 - _m_e)**2 - (pf_1 * sin_theta)**2 - (pf_1 * cos_theta)**2  # (vf_1 - vi_2) * (vf_1 - vi_2)
+    s = 2 * _m_e * (_m_e + ei_1)
+    t = 2 * (_m2_e - ei_1 * ef_1 + pi_1 * pf_1 * cos_theta)
+    u = 2 * _m_e * (_m_e - ef_1)
+
+    a_dir = (s - 2 * _m2_e)**2 + (u - 2 * _m2_e)**2 + 4 * _m2_e * t
+    a_ex = (s - 2 * _m2_e)**2 + (t - 2 * _m2_e)**2 + 4 * _m2_e * u
+    a_int = -(s - 2 * _m2_e) * (s - 6 * _m2_e)
+
+    return 2 * _alpha**2 * (cos_theta / (ei_1 + _m_e - C)) * (a_dir / t**2 + a_ex / u**2 - 2 * a_int / (t * u))
 
 
 def ep(ei_e, theta_e):
@@ -47,11 +71,12 @@ def ep(ei_e, theta_e):
     eps = 1 / (1 - 2 * (1 + tau) * (qq + 2 * _m2_e) / (4 * ei_e * ef_e + qq))  # modified epsilon
     dd = (ef_e / ei_e) * numpy.sqrt((ei_e**2 - _m2_e) / (ef_e**2 - _m2_e))
 
-    ge, gm, _ = _form_factors.venkat_2011(-qq * _gev_to_inv_fm**2)
-
     # the lepton mass isn't neglected here, see arXiv:1401.2959
     mott = (_alpha / (2 * ei_e))**2 * ((1 + qq / (4 * ei_e * ef_e)) / (qq / (4 * ei_e * ef_e))**2) * (1 / dd)
     mott = mott * (_m_p * (ef_e**2 - _m2_e) / (_m_p * ei_e * ef_e + _m2_e * (ef_e - ei_e - _m_p)))
+
+    ge, gm, _ = _form_factors.venkat_2011(-qq * _gev_to_inv_fm**2)
+
     return mott * (1 / (eps * (1 + tau))) * (eps * ge**2 + tau * gm**2)
 
 
