@@ -15,7 +15,7 @@ parser.add_argument('-e', default=500000, type=int, help='event amount', dest='n
 parser.add_argument('-c', action='store_true', help='combine results', dest='combine')
 
 args = vars(parser.parse_args())
-path = args['path']
+path = args['path'][0]
 n = args['n']
 combine = args['combine']
 
@@ -42,6 +42,8 @@ else:
     result['acceptance'] = acceptance
     result['error_of_acceptance'] = error_of_acceptance
     result['averaged_z_center'] = averaged_z_center
+
+    print(acceptance, error_of_acceptance, averaged_z_center)
 
     with open(os.path.join(path, 'acceptance.pkl'), 'wb') as f:
         pickle.dump(result, f)
