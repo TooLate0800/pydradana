@@ -24,6 +24,10 @@ if not combine:
     with open(os.path.basename(path) + '.pkl', 'wb') as f:
         pickle.dump(result, f)
 else:
+    if os.path.exists(os.path.join(path, 'acceptance.pkl')):
+        os.remove(os.path.join(path, 'acceptance.pkl'))
+
+    n_files = 0
     hist_theta = numpy.zeros(sim_configs.binning['bins'])
     hist_theta_good = numpy.zeros(sim_configs.binning['bins'])
     hist_z_good = numpy.zeros(sim_configs.binning['bins'])
@@ -33,6 +37,9 @@ else:
         hist_theta += result['hist_theta']
         hist_theta_good += result['hist_theta_good']
         hist_z_good += result['hist_z_good']
+        n_files += 1
+
+    print('loaded {} files'.format(n_files))
 
     acceptance = hist_theta_good / hist_theta
     error_of_acceptance = numpy.sqrt(1 / hist_theta + 1 / hist_theta_good) * acceptance
@@ -46,7 +53,10 @@ else:
     result = {}
     result['acceptance'] = acceptance
     result['error_of_acceptance'] = error_of_acceptance
+    result['averaged_z_center'] = averaged_z_center
     result['z_correction'] = z_correction
+
+    print(result)
 
     with open(os.path.join(path, 'acceptance.pkl'), 'wb') as f:
         pickle.dump(result, f)
