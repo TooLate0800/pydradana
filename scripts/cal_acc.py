@@ -7,7 +7,7 @@ import pickle
 
 import numpy
 
-from pydradana import binning, sim_acc
+from pydradana import sim_configs, sim_counter
 
 parser = argparse.ArgumentParser(description='calculate simulation acceptances')
 parser.add_argument('path', nargs=1, help='path to rootfiles or results')
@@ -20,13 +20,13 @@ n = args['n']
 combine = args['combine']
 
 if not combine:
-    result = sim_acc.process(path, 0, n)
+    result = sim_counter.get_acceptance(path, 0, n)
     with open(os.path.basename(path) + '.pkl', 'wb') as f:
         pickle.dump(result, f)
 else:
-    hist_theta = numpy.zeros(binning['bins'])
-    hist_theta_good = numpy.zeros(binning['bins'])
-    hist_z_good = numpy.zeros(binning['bins'])
+    hist_theta = numpy.zeros(sim_configs.binning['bins'])
+    hist_theta_good = numpy.zeros(sim_configs.binning['bins'])
+    hist_z_good = numpy.zeros(sim_configs.binning['bins'])
     for filename in glob.glob(os.path.join(path, '*.pkl')):
         with open(filename, 'rb') as f:
             result = pickle.load(f)
@@ -38,12 +38,15 @@ else:
     error_of_acceptance = numpy.sqrt(1 / hist_theta + 1 / hist_theta_good) * acceptance
     averaged_z_center = hist_z_good / hist_theta_good
 
+    bins = sim_configs.binning['bins']
+    low, high = sim_configs.binning['range']
+    bin_centers = numpy.linspace(low + (high - low) / bins / 2, high - (high - low) / bins / 2, bins)
+    z_correction = numpy.polyfit(bin_centers * numpy.pi / 180.0, averaged_z_center, 1)
+
     result = {}
     result['acceptance'] = acceptance
     result['error_of_acceptance'] = error_of_acceptance
-    result['averaged_z_center'] = averaged_z_center
-
-    print(acceptance, error_of_acceptance, averaged_z_center)
+    result['z_correction'] = z_correction
 
     with open(os.path.join(path, 'acceptance.pkl'), 'wb') as f:
         pickle.dump(result, f)

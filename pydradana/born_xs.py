@@ -10,7 +10,7 @@ from scipy import constants
 
 from . import _form_factors
 
-__all__ = ['ee', 'ep', 'ed']
+__all__ = ['get_ef', 'mott', 'ee', 'ep', 'ed']
 
 _m_e = constants.value("electron mass energy equivalent in MeV") * 1e-3
 _m_p = constants.value("proton mass energy equivalent in MeV") * 1e-3
@@ -25,14 +25,14 @@ _gev_to_inv_fm = 1 / _inv_fm_to_gev
 _inv_gev_to_mkb = _inv_gev_to_fm**2 * 1e4  # GeV^{-2} to microbarn
 
 
-def _get_ef(ei_e, theta_e, m_h):
+def get_ef(ei_e, theta_e, m_h):
     sin_theta = numpy.sin(theta_e)
     cos_theta = numpy.cos(theta_e)
     return ((ei_e + m_h) * (ei_e * m_h + _m2_e) + numpy.sqrt(m_h**2 - _m2_e * sin_theta**2) *
             (ei_e**2 - _m2_e) * cos_theta) / ((ei_e + m_h)**2 - (ei_e**2 - _m2_e) * cos_theta**2)
 
 
-def _mott(ei_e, theta_e):
+def mott(ei_e, theta_e):
     cos_theta_2 = numpy.cos(theta_e / 2)
     sin2_theta_2 = 1 - cos_theta_2**2
     return (_alpha * cos_theta_2 / (2 * ei_e * sin2_theta_2))**2
@@ -65,25 +65,25 @@ def ee(ei_1, theta_1):
 
 
 def ep(ei_e, theta_e):
-    ef_e = _get_ef(ei_e, theta_e, _m_p)
+    ef_e = get_ef(ei_e, theta_e, _m_p)
     qq = 2 * _m_p * (ef_e - ei_e)
     tau = -qq / (4 * _m2_p)
     eps = 1 / (1 - 2 * (1 + tau) * (qq + 2 * _m2_e) / (4 * ei_e * ef_e + qq))  # modified epsilon
     dd = (ef_e / ei_e) * numpy.sqrt((ei_e**2 - _m2_e) / (ef_e**2 - _m2_e))
 
     # the lepton mass isn't neglected here, see arXiv:1401.2959
-    mott = (_alpha / (2 * ei_e))**2 * ((1 + qq / (4 * ei_e * ef_e)) / (qq / (4 * ei_e * ef_e))**2) * (1 / dd)
-    mott = mott * (_m_p * (ef_e**2 - _m2_e) / (_m_p * ei_e * ef_e + _m2_e * (ef_e - ei_e - _m_p)))
+    mott_ep = (_alpha / (2 * ei_e))**2 * ((1 + qq / (4 * ei_e * ef_e)) / (qq / (4 * ei_e * ef_e))**2) * (1 / dd)
+    mott_ep = mott_ep * (_m_p * (ef_e**2 - _m2_e) / (_m_p * ei_e * ef_e + _m2_e * (ef_e - ei_e - _m_p)))
 
     ge, gm, _ = _form_factors.venkat_2011(-qq * _gev_to_inv_fm**2)
 
-    return mott * (1 / (eps * (1 + tau))) * (eps * ge**2 + tau * gm**2)
+    return mott_ep * (1 / (eps * (1 + tau))) * (eps * ge**2 + tau * gm**2)
 
 
 def ed(ei_e, theta_e):
     sin_theta_2 = numpy.sin(theta_e / 2)
     tan_theta_2 = numpy.tan(theta_e / 2)
-    ef_e = _get_ef(ei_e, theta_e, _m_d)
+    ef_e = get_ef(ei_e, theta_e, _m_d)
     q2 = 4 * ei_e * ef_e * sin_theta_2**2
     eta = q2 / (4 * _m2_d)
 
@@ -92,4 +92,4 @@ def ed(ei_e, theta_e):
     A = gc**2 + 8 / 9 * (eta * gq)**2 + 2 / 3 * eta * gm**2
     B = 4 / 3 * eta * (1 + eta) * gm**2
 
-    return _mott(ei_e, theta_e) * ef_e / ei_e * (A + B * tan_theta_2**2)
+    return mott(ei_e, theta_e) * ef_e / ei_e * (A + B * tan_theta_2**2)
