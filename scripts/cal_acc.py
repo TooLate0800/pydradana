@@ -49,7 +49,7 @@ else:
     low, high = sim_configs.binning['range']
     bin_centers = numpy.linspace(low + (high - low) / bins / 2, high - (high - low) / bins / 2, bins)
     selection = (bin_centers < 5.5) & (bin_centers > 1.0)
-    z_correction = numpy.polyfit(bin_centers[selection] * numpy.pi / 180.0, averaged_z_center[selection], 1)
+    z_correction = numpy.polyfit(bin_centers[selection] * numpy.pi / 180, averaged_z_center[selection], 1)
 
     result = {}
     result['acceptance'] = acceptance

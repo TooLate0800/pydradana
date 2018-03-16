@@ -7,6 +7,6 @@ deuteron = 1000010020
 
 target_center = -3000 + 89  # mm
 
-gem_resolution = 7.5e-2  # 70 um
+gem_resolution = 7.0e-2  # 70 um
 
 binning = {'bins': 60, 'range': (0.5, 6.5)}

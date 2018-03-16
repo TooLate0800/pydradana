@@ -17,15 +17,19 @@ parser = argparse.ArgumentParser(description='calculate simulation acceptances')
 parser.add_argument('path', nargs=1, help='path to yield results')
 parser.add_argument('-a', default='acceptance.pkl', type=str, help='acceptance file', dest='acc_file')
 parser.add_argument('-e', default=2.2, type=float, help='beam energy', dest='e')
-parser.add_argument('-l', default=57.325, type=float, help='luminosity per file', dest='lumi_per_file')
+# 2.2 gev: 735.34935, 1.1 gev:
+parser.add_argument('-l', default=735.34935, type=float, help='luminosity per file', dest='lumi_per_file')
 
 args = vars(parser.parse_args())
 path = args['path'][0]
 ei = args['e']
-acc_file = args['acc_file']
+acceptance_file = args['acc_file']
 lumi_per_file = args['lumi_per_file']
 
-with open('acc_file', 'rb') as f:
+if os.path.exists(os.path.join(path, 'gc.pkl')):
+    os.remove(os.path.join(path, 'gc.pkl'))
+
+with open(acceptance_file, 'rb') as f:
     acceptance_dict = pickle.load(f)
 
 acc = acceptance_dict['acceptance']
@@ -46,7 +50,8 @@ low, high = sim_configs.binning['range']
 bin_centers = numpy.linspace(low + (high - low) / bins / 2, high - (high - low) / bins / 2, bins)
 bin_edges = numpy.linspace(low, high, bins + 1)
 
-theta = bin_centers / 180.0 * numpy.pi
+theta = bin_centers / 180 * numpy.pi
+theta_edges = bin_edges / 180 * numpy.pi
 
 dyields = numpy.sqrt(yields)
 
@@ -54,10 +59,10 @@ yields = yields / acc
 dyields = yields * numpy.sqrt((1 / dyields)**2 + (dacc / acc)**2)  # absolute error
 
 ef = get_ef(ei, theta, _m_d)
-q2 = 4 * ei * ef * numpy.sin(theta / 2)
-dq2 = 0
+q2 = 4 * ei * ef * numpy.sin(theta / 2)**2
+dq2 = numpy.zeros(q2.shape)
 
-omega = 2 * numpy.pi * numpy.diff(numpy.cos(bin_edges))
+omega = -2 * numpy.pi * numpy.diff(numpy.cos(theta_edges))
 
 xs_raw = yields / lumi / omega
 dxs_raw = dyields / lumi / omega
@@ -75,8 +80,10 @@ gc = numpy.sqrt(a)
 dgc = da / (2 * numpy.sqrt(a))
 
 result = {}
+result['Q2'] = q2
+result['dQ2'] = dq2
 result['GC'] = gc
-result['error_of_GC'] = dgc
+result['dGC'] = dgc
 
-with open(os.path.join(path, 'GC.pkl'), 'wb') as f:
+with open(os.path.join(path, 'gc.pkl'), 'wb') as f:
     pickle.dump(result, f)

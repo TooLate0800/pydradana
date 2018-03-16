@@ -35,7 +35,7 @@ def get_ef(ei_e, theta_e, m_h):
 def mott(ei_e, theta_e):
     cos_theta_2 = numpy.cos(theta_e / 2)
     sin2_theta_2 = 1 - cos_theta_2**2
-    return (_alpha * cos_theta_2 / (2 * ei_e * sin2_theta_2))**2
+    return (_alpha * cos_theta_2 / (2 * ei_e * sin2_theta_2))**2 * _inv_gev_to_mkb
 
 
 def ee(ei_1, theta_1):
@@ -61,7 +61,7 @@ def ee(ei_1, theta_1):
     a_ex = (s - 2 * _m2_e)**2 + (t - 2 * _m2_e)**2 + 4 * _m2_e * u
     a_int = -(s - 2 * _m2_e) * (s - 6 * _m2_e)
 
-    return 2 * _alpha**2 * (cos_theta / (ei_1 + _m_e - C)) * (a_dir / t**2 + a_ex / u**2 - 2 * a_int / (t * u))
+    return 2 * _alpha**2 * (cos_theta / (ei_1 + _m_e - C)) * (a_dir / t**2 + a_ex / u**2 - 2 * a_int / (t * u)) * _inv_gev_to_mkb
 
 
 def ep(ei_e, theta_e):
@@ -73,7 +73,7 @@ def ep(ei_e, theta_e):
 
     # the lepton mass isn't neglected here, see arXiv:1401.2959
     mott_ep = (_alpha / (2 * ei_e))**2 * ((1 + qq / (4 * ei_e * ef_e)) / (qq / (4 * ei_e * ef_e))**2) * (1 / dd)
-    mott_ep = mott_ep * (_m_p * (ef_e**2 - _m2_e) / (_m_p * ei_e * ef_e + _m2_e * (ef_e - ei_e - _m_p)))
+    mott_ep = mott_ep * (_m_p * (ef_e**2 - _m2_e) / (_m_p * ei_e * ef_e + _m2_e * (ef_e - ei_e - _m_p))) * _inv_gev_to_mkb
 
     ge, gm, _ = _form_factors.venkat_2011(-qq * _gev_to_inv_fm**2)
 
@@ -87,7 +87,7 @@ def ed(ei_e, theta_e):
     q2 = 4 * ei_e * ef_e * sin_theta_2**2
     eta = q2 / (4 * _m2_d)
 
-    gc, gm, gq = _form_factors.abbott_2000_1(q2 * _gev_to_inv_fm**2, 2.130)
+    gc, gm, gq = _form_factors.abbott_2000_1(q2 * _gev_to_inv_fm**2)
 
     A = gc**2 + 8 / 9 * (eta * gq)**2 + 2 / 3 * eta * gm**2
     B = 4 / 3 * eta * (1 + eta) * gm**2

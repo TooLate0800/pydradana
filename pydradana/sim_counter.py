@@ -60,7 +60,7 @@ def get_yield(filename, start, stop, z_correction=None):
 
     _, _, found_gem_0, found_gem_1, _, _, is_good = _get_general_cuts(r)
 
-    n_good = len(is_good[is_good])
+    n_good = numpy.count_nonzero(is_good)
 
     # silicon detector (1st layer)
     # x_rd_0 = r.RD.X.content[found_rd_0][is_good]
@@ -90,7 +90,7 @@ def get_yield(filename, start, stop, z_correction=None):
         theta_gem_1 = numpy.arctan(r_gem_1 / (z_gem_1 - dz))
         theta = (theta_gem_0 + theta_gem_1) / 2
 
-    hist_theta, _ = numpy.histogram(theta, **_binning)
+    hist_theta, _ = numpy.histogram(theta * 180 / numpy.pi, **_binning)
 
     result = {}
     result['hist_theta'] = hist_theta
