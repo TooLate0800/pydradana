@@ -75,10 +75,10 @@ class _Detector(object):
 
 class SimReader(object):
 
-    def __init__(self, file_name, start=0, stop=100000):
+    def __init__(self, filename, start=0, stop=100000):
         self.start = start
         self.stop = stop
-        self.open(file_name)
+        self.open(filename)
 
     def _add_attrs(self):
         for det, var_dict in self._structure.items():
@@ -89,8 +89,8 @@ class SimReader(object):
     def detectors(self):
         return list(self._structure.keys())
 
-    def open(self, file_name):
-        self._tree = uproot.open(file_name)['T']
+    def open(self, filename):
+        self._tree = uproot.open(filename)['T']
 
         # convert the first layer tree structure to a dictionary
         self._structure = {}

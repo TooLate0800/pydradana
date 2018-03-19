@@ -8,7 +8,7 @@ import math
 import numpy
 from scipy import constants
 
-from . import _form_factors
+from . import form_factors
 
 __all__ = ['get_ef', 'mott', 'ee', 'ep', 'ed']
 
@@ -75,7 +75,7 @@ def ep(ei_e, theta_e):
     mott_ep = (_alpha / (2 * ei_e))**2 * ((1 + qq / (4 * ei_e * ef_e)) / (qq / (4 * ei_e * ef_e))**2) * (1 / dd)
     mott_ep = mott_ep * (_m_p * (ef_e**2 - _m2_e) / (_m_p * ei_e * ef_e + _m2_e * (ef_e - ei_e - _m_p))) * _inv_gev_to_mkb
 
-    ge, gm, _ = _form_factors.venkat_2011(-qq * _gev_to_inv_fm**2)
+    ge, gm, _ = form_factors.venkat_2011(-qq * _gev_to_inv_fm**2)
 
     return mott_ep * (1 / (eps * (1 + tau))) * (eps * ge**2 + tau * gm**2)
 
@@ -87,7 +87,7 @@ def ed(ei_e, theta_e):
     q2 = 4 * ei_e * ef_e * sin_theta_2**2
     eta = q2 / (4 * _m2_d)
 
-    gc, gm, gq = _form_factors.abbott_2000_1(q2 * _gev_to_inv_fm**2)
+    gc, gm, gq = form_factors.abbott_2000_1(q2 * _gev_to_inv_fm**2)
 
     A = gc**2 + 8 / 9 * (eta * gq)**2 + 2 / 3 * eta * gm**2
     B = 4 / 3 * eta * (1 + eta) * gm**2

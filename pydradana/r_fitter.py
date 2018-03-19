@@ -12,7 +12,7 @@ from lmfit import Minimizer, Parameters, fit_report
 from scipy import constants
 from scipy.interpolate import interp1d
 
-from . import _form_factors
+from . import form_factors
 
 __all__ = ['RFitter']
 
@@ -76,11 +76,12 @@ class RFitter(object):
 
     # Form factors from file
     @staticmethod
-    def _ff_file(q2, file_name, unit='GeV'):
-        q2_model, ge_model = numpy.loadtxt(file_name, usecols=(0, 1), unpack=True)
+    def _ff_file(q2, filename, unit='GeV'):
+        q2_model, ge_model = numpy.loadtxt(filename, usecols=(0, 1), unpack=True)
         if unit == 'GeV':
             q2_model = q2_model * _gev_to_inv_fm**2
         spl = interp1d(q2_model, ge_model, kind='cubic')
+
         return spl(q2)
 
     def _get_residual_func(self, model_func, n_pars, *args, **kwargs):
@@ -93,9 +94,11 @@ class RFitter(object):
         return residual
 
     # Public methods
-    def load_data(self, file_name='bin_errors.dat'):
-        self.q2_raw, self.ge_raw, self.dge_raw = numpy.loadtxt(file_name, usecols=(0, 1, 2), skiprows=1, unpack=True)
-        self.q2_raw = self.q2_raw
+    def load_data(self, filename='bin_errors.dat', *, q2=None, ge=None, dge=None):
+        if any(x is None for x in [q2, ge, dge]):
+            self.q2_raw, self.ge_raw, self.dge_raw = numpy.loadtxt(filename, usecols=(0, 1, 2), skiprows=1, unpack=True)
+        else:
+            self.q2_raw, self.ge_raw, self.dge_raw = q2, ge, dge
         self.dq2_raw = numpy.zeros(self.q2_raw.shape)
 
     def print_data(self, select='raw'):
@@ -113,14 +116,14 @@ class RFitter(object):
 
     def gen_model(self, model='dipole', r0=2.130, *args, **kwargs):
         model_func = {
-            'monopole': _form_factors.monopole,
-            'dipole': _form_factors.dipole,
-            'gaussian': _form_factors.gaussian,
-            'Arrington-2004': _form_factors.arrington_2004,
-            'Kelly-2004': _form_factors.kelly_2004,
-            'Venkat-2011': _form_factors.venkat_2011,
-            'Abbott-2000-1': _form_factors.abbott_2000_1,
-            'Abbott-2000-2': _form_factors.abbott_2000_2,
+            'monopole': form_factors.monopole,
+            'dipole': form_factors.dipole,
+            'gaussian': form_factors.gaussian,
+            'Arrington-2004': form_factors.arrington_2004,
+            'Kelly-2004': form_factors.kelly_2004,
+            'Venkat-2011': form_factors.venkat_2011,
+            'Abbott-2000-1': form_factors.abbott_2000_1,
+            'Abbott-2000-2': form_factors.abbott_2000_2,
         }.get(model, None)
 
         if self.q2_raw is None:
@@ -129,7 +132,7 @@ class RFitter(object):
         if model_func is not None:
             self.ge_raw, _, _ = model_func(self.q2_raw, r0)
         else:
-            self.ge_raw = self._ff_file(self.q2_raw, file_name=model + '.dat', *args, **kwargs)
+            self.ge_raw = self._ff_file(self.q2_raw, filename=model + '.dat', *args, **kwargs)
 
     def add_noise(self, model='gaussian', *args, **kwargs):
         if model == 'uniform':
