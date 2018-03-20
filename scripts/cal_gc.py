@@ -22,17 +22,19 @@ parser.add_argument('-a', default='acceptance.pkl', type=str, help='acceptance f
 parser.add_argument('-e', default=2.2, type=float, help='beam energy', dest='e')
 # 2.2 gev: 735.34935, 1.1 gev: 177.34404
 parser.add_argument('-l', default=735.34935, type=float, help='luminosity per file', dest='lumi_per_file')
+parser.add_argument('-o', default='form_factors.pkl', type=str, help='output file', dest='output_file')
 parser.add_argument('-r', default='rad_correction.dat', type=str, help='radiative correction file', dest='rad_cor_file')
 
 args = vars(parser.parse_args())
 path = args['path'][0]
 ei = args['e']
+lumi_per_file = args['lumi_per_file']
 acceptance_file = args['acc_file']
 rad_correction_file = args['rad_cor_file']
-lumi_per_file = args['lumi_per_file']
+output_file = args['output_file']
 
-if os.path.exists('gc.pkl'):
-    os.remove('gc.pkl')
+if os.path.exists(output_file):
+    os.remove(output_file)
 
 bins = sim_configs.binning['bins']
 low, high = sim_configs.binning['range']
@@ -101,5 +103,5 @@ result['dQ2'] = dq2
 result['GC'] = gc
 result['dGC'] = dgc
 
-with open('gc.pkl', 'wb') as f:
+with open(output_file, 'wb') as f:
     pickle.dump(result, f)

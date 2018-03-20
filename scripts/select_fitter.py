@@ -76,10 +76,16 @@ def do_fit(N=100000, model_gen='dipole', model_fit='dipole', r0=2.130, lock=None
 if exists(join(output_path, 'result.dat')):
     os.remove(join(output_path, 'result.dat'))
 
-#list_model_gen = ['dipole', 'monopole', 'gaussian', 'Abbott-2000-1', 'Abbott-2000-2']
-list_model_gen = ['Abbott-2000-1']
-#list_model_fit = ['dipole', ('poly', 2), ('poly', 3), ('ratio', 1, 1), ('ratio', 1, 2), ('ratio', 2, 1), ('cf', 2), ('cf', 3)]
-list_model_fit = [('ratio', 1, 1), ('cf', 2)]
+# list_model_gen = [
+#     'dipole', 'monopole', 'gaussian', 'Kelly-2004', 'Arrington-2004', 'Venkat-2011', 'Alarcon-2017', 'Alarcon-2017-CODATA', 'Alarcon-2017-mu'
+# ]  # proton
+# list_model_gen = ['dipole', 'monopole', 'gaussian', 'Abbott-2000-1', 'Abbott-2000-2']  # deuteron
+list_model_gen = ['dipole']  # test
+# list_model_fit = [
+#     'dipole', 'monopole', 'gaussian', ('poly', 2), ('poly', 3), ('poly', 4), ('ratio', 1, 1), ('ratio', 1, 2), ('ratio', 2, 1),
+#     ('ratio', 2, 2), ('cf', 1), ('cf', 2), ('cf', 3), ('cf', 4), ('poly-z', 2), ('poly-z', 3), ('poly-z', 4)
+# ]  # full
+list_model_fit = ['dipole', ('poly', 2), ('poly', 3), ('ratio', 1, 1), ('ratio', 1, 2), ('ratio', 2, 1), ('cf', 2), ('cf', 3)]  # test
 
 l = multiprocessing.Manager().Lock()
 pool = multiprocessing.Pool()
