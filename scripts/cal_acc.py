@@ -6,7 +6,6 @@ import os
 import pickle
 
 import numpy
-from scipy.interpolate import interp1d
 
 from pydradana import sim_configs
 

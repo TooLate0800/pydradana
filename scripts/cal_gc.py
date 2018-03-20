@@ -8,7 +8,7 @@ import pickle
 import numpy
 from scipy import constants
 
-from pydradana import born_xs, form_factors, sim_configs, sim_radcor
+from pydradana import born_xs, form_factors, sim_configs, sim_corrections
 from pydradana.born_xs import get_ef
 
 _m_d = constants.value('deuteron mass energy equivalent in MeV') * 1e-3
@@ -80,8 +80,8 @@ xs_raw = yields / lumi / omega
 dxs_raw = dyields / lumi / omega
 
 # corrections
-rad_cor, drad_cor = sim_radcor.load_from_file(rad_correction_file)
-bin_center_cor = sim_radcor.get_bin_center_cor(ei)
+rad_cor, drad_cor = sim_corrections.get_radiative_cor(rad_correction_file)
+bin_center_cor, _ = sim_corrections.get_bin_center_cor(ei)
 xs = xs_raw * rad_cor * bin_center_cor
 systematics_of_xs = numpy.sqrt(sim_configs.error_of_event_selection**2 + sim_configs.error_of_other_sources**2)
 dxs = numpy.sqrt((dxs_raw / xs_raw)**2 + (drad_cor / rad_cor)**2 + systematics_of_xs**2) * xs
