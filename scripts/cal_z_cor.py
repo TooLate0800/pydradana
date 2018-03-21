@@ -34,12 +34,13 @@ for filename in glob.glob(os.path.join(path, '*.pkl')):
 print('loaded {} files'.format(n_files))
 
 averaged_z = hist_z_sum / hist_z_count
+averaged_z[numpy.isnan(averaged_z)] = 0.0
 
 bins = sim_configs.binning['bins']
 low, high = sim_configs.binning['range']
 bin_size = (high - low) / bins
 bin_centers = numpy.linspace(low - 2 * bin_size + 0.5 * bin_size, high + 2 * bin_size - 0.5 * bin_size, bins + 4)
-z_correction = interp1d(bin_centers * numpy.pi / 180, averaged_z, kind='cubic')
+z_correction = interp1d(bin_centers * numpy.pi / 180, averaged_z, kind='cubic', fill_value='extrapolate')
 
 result = {}
 result['averaged_z'] = averaged_z
