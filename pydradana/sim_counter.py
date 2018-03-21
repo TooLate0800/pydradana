@@ -95,6 +95,8 @@ def count_yield(filename, start, stop, z_correction=None):
 
     n_good = numpy.count_nonzero(is_good)
 
+    theta_gun = r.GUN.Theta.get_column(0)[is_good]
+
     # silicon detector (1st layer)
     # x_rd_0 = r.RD.X.content[found_rd_0][is_good]
     # y_rd_1 = r.RD.Y.content[found_rd_1][is_good]
@@ -124,8 +126,10 @@ def count_yield(filename, start, stop, z_correction=None):
         theta = (theta_gem_0 + theta_gem_1) / 2
 
     hist_theta, _ = numpy.histogram(theta * 180 / numpy.pi, **_binning)
+    hist_theta_gun, _ = numpy.histogram(theta_gun * 180 / numpy.pi, **_binning)
 
     result = {}
     result['hist_theta'] = hist_theta
+    result['hist_theta_gun'] = hist_theta_gun
 
     return result
