@@ -41,9 +41,9 @@ def setup_cache(path='/tmp', memorysize=0, disksize=0):
             _cache[0] = None
 
 
-def get_column(self, index):
+def _get_column(self, index):
     if not isinstance(index, numbers.Integral):
-        raise TypeError("JaggedArray index must be an integer")
+        raise TypeError('JaggedArray index must be an integer')
 
     array_at_index = [
         self.content[self.starts[i] + index] if self.starts[i] + index < self.stops[i] else numpy.nan for i in range(len(self.stops))
@@ -52,7 +52,53 @@ def get_column(self, index):
     return numpy.array(array_at_index)
 
 
-uproot.interp.jagged.JaggedArray.get_column = get_column
+uproot.interp.jagged.JaggedArray.get_column = _get_column
+
+
+class _EvGenJaggedArray(uproot.interp.jagged.JaggedArray):
+
+    def __init__(self, jarray):
+        super().__init__(jarray.content, jarray.starts, jarray.stops)
+
+    def __getitem__(self, index):
+        if isinstance(index, numbers.Integral):
+            return self.get_column(index)
+        else:
+            raise TypeError('EvGen index must be an integer')
+
+
+class _EvGen(object):
+
+    def __init__(self, tree, name, var_dict, start, stop):
+        self._tree = tree
+        self._name = name
+        self._var_dict = var_dict
+        self._start = start
+        self._stop = stop
+
+    def __getattr__(self, name):
+        if name in self._var_dict:
+            data = self._tree.array(self._var_dict[name], cache=_cache[0], entrystart=self._start, entrystop=self._stop)
+            if isinstance(data, uproot.interp.jagged.JaggedArray):
+                data = _EvGenJaggedArray(data)
+            setattr(self, name, data)
+            return data
+
+        raise AttributeError(name)
+
+
+class _DetectorJaggedArray(uproot.interp.jagged.JaggedArray):
+
+    def __init__(self, jarray):
+        super().__init__(jarray.content, jarray.starts, jarray.stops)
+
+    def __getitem__(self, index):
+        if isinstance(index, (numbers.Integral, slice)):
+            return super().__getitem__(index)
+        elif isinstance(index, numpy.ndarray):
+            return self.content[index]
+        else:
+            raise TypeError('Detector index must be an integer or slice or numpy array')
 
 
 class _Detector(object):
@@ -67,6 +113,8 @@ class _Detector(object):
     def __getattr__(self, name):
         if name in self._var_dict:
             data = self._tree.array(self._var_dict[name], cache=_cache[0], entrystart=self._start, entrystop=self._stop)
+            if isinstance(data, uproot.interp.jagged.JaggedArray):
+                data = _DetectorJaggedArray(data)
             setattr(self, name, data)
             return data
 
@@ -82,7 +130,10 @@ class SimReader(object):
 
     def _add_attrs(self):
         for det, var_dict in self._structure.items():
-            option = _Detector(self._tree, det, var_dict, self.start, self.stop)
+            if det == 'GUN':
+                option = _EvGen(self._tree, det, var_dict, self.start, self.stop)
+            else:
+                option = _Detector(self._tree, det, var_dict, self.start, self.stop)
             setattr(self, det, option)
 
     @property
@@ -106,13 +157,6 @@ class SimReader(object):
 
         self._add_attrs()
 
-    def get_primary(self):
-        try:
-            primary = getattr(self, 'GUN')
-        except AttributeError:
-            return None
-        return primary
-
     def find_hits(self, det_name, det_type='calorimeter', n_copy=1, pid=11):
         try:
             det = getattr(self, det_name)
@@ -125,19 +169,23 @@ class SimReader(object):
 
         if det_type == 'tracking':
             found = []
+            # for each event, build a list of fired detector's id
             fired_did_list = numpy.split(det.DID.content, det.DID.stops)[:-1]
-            for copyid in range(n_copy):
+            for copyid in range(n_copy):  # search in each layer
                 found_in_copy = []
                 for i in range(len(fired_did_list)):
+                    # numpy.nonzero return an index, not a value
                     index_list = det.DID.starts[i] + numpy.nonzero(fired_did_list[i] == copyid)[0]  # 0 means x axis
+                    # index_list[is_good[index_list]] select only good hits
                     found_in_copy.append(index_list[is_good[index_list]][0] if any(is_good[index_list]) else -1)
                 found.append(numpy.array(found_in_copy))
             return found
         elif det_type == 'standard' or det_type == 'calorimeter':
             found = []
-            primary_list = numpy.split(is_primary, det.PTID.stops)[:-1]
-            for i in range(len(primary_list)):
-                index_list = det.PTID.starts[i] + numpy.nonzero(primary_list[i])[0]  # 0 means x axis
+            # for each event, build an is_primary list for the hits in this event
+            is_primary_list = numpy.split(is_primary, det.PTID.stops)[:-1]
+            for i in range(len(is_primary_list)):
+                index_list = det.PTID.starts[i] + numpy.nonzero(is_primary_list[i])[0]  # 0 means x axis
                 found.append(index_list[is_good[index_list]][0] if any(is_good[index_list]) else -1)
             return numpy.array(found)
 

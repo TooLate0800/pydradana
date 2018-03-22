@@ -7,7 +7,7 @@ import pickle
 
 import numpy
 
-from pydradana import sim_configs, sim_corrections
+from pydradana import sim_analyzer, sim_configs
 
 parser = argparse.ArgumentParser(description='calculate simulation radiative correction')
 parser.add_argument('path', nargs=1, help='path to cooked radiative correction simulation pkl files')
@@ -25,11 +25,7 @@ output_file = args['output_file']
 if os.path.exists(output_file):
     os.remove(output_file)
 
-bins = sim_configs.binning['bins']
-low, high = sim_configs.binning['range']
-bin_centers = numpy.linspace(low + (high - low) / bins / 2, high - (high - low) / bins / 2, bins)
-bin_edges = numpy.linspace(low, high, bins + 1)
-
+bin_centers, bin_edges = sim_configs.create_bins()
 theta = bin_centers * numpy.pi / 180
 theta_edges = bin_edges * numpy.pi / 180
 
@@ -54,7 +50,7 @@ xs_sim = yields / lumi / omega
 dxs_sim = dyields / lumi / omega
 
 # born cross-section
-xs_0, dxs_0 = sim_corrections.get_integrated_born_xs(ei, theta_edges)
+xs_0, dxs_0 = sim_analyzer.get_integrated_born_xs(ei)
 
 rad_correction = xs_0 / xs_sim
 systematics = sim_configs.error_of_radiative_correction

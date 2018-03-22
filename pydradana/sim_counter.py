@@ -2,20 +2,14 @@
 
 import numpy
 
-from . import sim_configs
 from .sim_reader import SimReader
+from .sim_configs import electron as _electron
+from .sim_configs import deuteron as _deuteron
+from .sim_configs import target_center as _z_center
+from .sim_configs import gem_resolution as _gem_res
+from .sim_configs import binning as _binning
 
-__all__ = ['count_good_events', 'count_yield']
-
-# configs read from _sim_configs
-_electron = sim_configs.electron
-_proton = sim_configs.proton
-_deuteron = sim_configs.deuteron
-
-_z_center = sim_configs.target_center  # mm
-_gem_res = sim_configs.gem_resolution
-
-_binning = sim_configs.binning
+__all__ = ['count_good_events', 'count_yield', 'count_z_ave']
 
 
 def _get_general_cuts(reader):
@@ -38,7 +32,7 @@ def count_good_events(filename, start, stop):
 
     *_, is_good = _get_general_cuts(r)
 
-    theta = r.GUN.Theta.get_column(0) * 180.0 / numpy.pi
+    theta = r.GUN.Theta[0] * 180.0 / numpy.pi
     theta_good = theta[is_good]
 
     hist_theta, _ = numpy.histogram(theta, **_binning)
@@ -56,15 +50,15 @@ def count_z_ave(filename, start, stop):
 
     _, _, found_gem_0, found_gem_1, _, _, is_good = _get_general_cuts(r)
 
-    z = r.GUN.Z.get_column(0)[is_good] - _z_center
+    z = r.GUN.Z[0][is_good] - _z_center
 
     # GEMs
-    x_gem_0 = r.GEM.X.content[found_gem_0][is_good]
-    y_gem_0 = r.GEM.Y.content[found_gem_0][is_good]
-    z_gem_0 = r.GEM.Z.content[found_gem_0][is_good] - _z_center
-    x_gem_1 = r.GEM.X.content[found_gem_1][is_good]
-    y_gem_1 = r.GEM.Y.content[found_gem_1][is_good]
-    z_gem_1 = r.GEM.Z.content[found_gem_1][is_good] - _z_center
+    x_gem_0 = r.GEM.X[found_gem_0][is_good]
+    y_gem_0 = r.GEM.Y[found_gem_0][is_good]
+    z_gem_0 = r.GEM.Z[found_gem_0][is_good] - _z_center
+    x_gem_1 = r.GEM.X[found_gem_1][is_good]
+    y_gem_1 = r.GEM.Y[found_gem_1][is_good]
+    z_gem_1 = r.GEM.Z[found_gem_1][is_good] - _z_center
 
     #
     r_gem_0 = numpy.sqrt(x_gem_0**2 + y_gem_0**2)
@@ -96,19 +90,19 @@ def count_yield(filename, start, stop, z_correction=None):
     n_good = numpy.count_nonzero(is_good)
 
     # silicon detector (1st layer)
-    # x_rd_0 = r.RD.X.content[found_rd_0][is_good]
-    # y_rd_1 = r.RD.Y.content[found_rd_1][is_good]
+    # x_rd_0 = r.RD.X[found_rd_0][is_good]
+    # y_rd_1 = r.RD.Y[found_rd_1][is_good]
 
     # GEMs
-    x_gem_0 = r.GEM.X.content[found_gem_0][is_good] + numpy.random.normal(0, _gem_res, n_good)
-    y_gem_0 = r.GEM.Y.content[found_gem_0][is_good] + numpy.random.normal(0, _gem_res, n_good)
-    z_gem_0 = r.GEM.Z.content[found_gem_0][is_good] - _z_center
-    x_gem_1 = r.GEM.X.content[found_gem_1][is_good] + numpy.random.normal(0, _gem_res, n_good)
-    y_gem_1 = r.GEM.Y.content[found_gem_1][is_good] + numpy.random.normal(0, _gem_res, n_good)
-    z_gem_1 = r.GEM.Z.content[found_gem_1][is_good] - _z_center
+    x_gem_0 = r.GEM.X[found_gem_0][is_good] + numpy.random.normal(0, _gem_res, n_good)
+    y_gem_0 = r.GEM.Y[found_gem_0][is_good] + numpy.random.normal(0, _gem_res, n_good)
+    z_gem_0 = r.GEM.Z[found_gem_0][is_good] - _z_center
+    x_gem_1 = r.GEM.X[found_gem_1][is_good] + numpy.random.normal(0, _gem_res, n_good)
+    y_gem_1 = r.GEM.Y[found_gem_1][is_good] + numpy.random.normal(0, _gem_res, n_good)
+    z_gem_1 = r.GEM.Z[found_gem_1][is_good] - _z_center
 
     # HC
-    # p_hc = r.HC.P.content[found_hc][is_good]
+    # p_hc = r.HC.P[found_hc][is_good]
 
     #
     r_gem_0 = numpy.sqrt(x_gem_0**2 + y_gem_0**2)

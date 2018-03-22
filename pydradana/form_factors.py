@@ -75,6 +75,7 @@ def venkat_2011(q2, *args, **kwargs):
 #Deuteron form factors
 def abbott_2000_1(q2, *args, **kwargs):
     # Parameterization I in Eur. Phys. J A 7(2000)421
+    # r_0 = 2.094
     gc0, qc0 = 1, 4.21
     gm0, qm0 = 1.714, 7.37
     gq0, qq0 = 25.83, 8.1
@@ -89,6 +90,7 @@ def abbott_2000_1(q2, *args, **kwargs):
 
 def abbott_2000_2(q2, *args, **kwargs):
     # Parameterization II in Eur. Phys. J A 7(2000)421
+    # r_0 = 2.088
     eta = q2 / (4 * (_m_d * _gev_to_inv_fm)**2)
     delta = (0.89852 * _gev_to_inv_fm)**2
     gq2 = 1 / (1 + q2 / (4 * delta))**2
