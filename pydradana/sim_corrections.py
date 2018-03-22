@@ -42,18 +42,11 @@ def get_bin_center_cor(ei):
     return cor, dcor
 
 
-def get_radiative_cor(filename):
-    ei, theta_min, theta_max, xs, dxs = numpy.loadtxt(filename, usecols=(0, 1, 2, 5, 6), unpack=True)
+def get_integrated_born_xs(ei, bin_edges):
+    omega = -2 * numpy.pi * numpy.diff(numpy.cos(bin_edges))
 
-    theta_min = theta_min * numpy.pi / 180
-    theta_max = theta_max * numpy.pi / 180
-    omega = 2 * numpy.pi * (numpy.cos(theta_min) - numpy.cos(theta_max))
+    born_xs_sin_func = _get_xs_sin_func(born_xs.ed, ei)
 
-    born_xs_sin_func = _get_xs_sin_func(born_xs.ed, ei[0])
+    xs_0, dxs_0 = numpy.array([integrate.quad(born_xs_sin_func, bin_edges[i], bin_edges[i + 1]) for i in range(len(bin_edges) - 1)]).T / omega
 
-    xs_0, dxs_0 = numpy.array([integrate.quad(born_xs_sin_func, theta_min[i], theta_max[i]) for i in range(len(theta_min))]).T / omega
-
-    cor = xs_0 / xs
-    dcor = numpy.sqrt((dxs_0 / xs_0)**2 + (dxs / xs)**2) * cor
-
-    return cor, dcor
+    return xs_0, dxs_0
