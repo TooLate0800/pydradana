@@ -8,7 +8,7 @@ from scipy import integrate
 
 from . import born_xs, sim_configs
 
-__all__ = ['get_bin_center_cor', 'get_radiative_cor']
+__all__ = ['get_bin_center_cor', 'get_integrated_born_xs']
 
 
 def _get_xs_sin_func(xs_func, ei):
@@ -36,7 +36,7 @@ def get_bin_center_cor(ei):
     xs_0 = xs_0 / omega
     xs_0_center = born_xs.ed(ei, theta)
 
-    cor = xs_0_center / xs_0
+    cor = xs_0_center - xs_0
     dcor = numpy.zeros(cor.shape)
 
     return cor, dcor

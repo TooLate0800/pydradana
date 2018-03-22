@@ -40,7 +40,7 @@ def cal_gc(ei, y, dy, lumi, rad_cor, drad_cor):
 
     # apply radiative correction
     bin_center_cor, _ = sim_corrections.get_bin_center_cor(ei)
-    xs = xs_raw * rad_cor * bin_center_cor
+    xs = xs_raw * rad_cor + bin_center_cor
     dxs = numpy.sqrt((dxs_raw / xs_raw)**2 + (drad_cor / rad_cor)**2) * xs
 
     # add systematics
@@ -50,11 +50,11 @@ def cal_gc(ei, y, dy, lumi, rad_cor, drad_cor):
     # get structure function A
     _, gm_0, gq_0 = form_factors.abbott_2000_1(q2)
     mott = born_xs.mott(ei, theta) * ef / ei  # corrected mott xs
-    a = xs / mott - (4 / 3 * eta * (1 + eta) * gm_0**2) * numpy.tan(theta / 2)
+    a = xs / mott - (4 / 3 * eta * (1 + eta) * gm_0**2) * numpy.tan(theta / 2)**2
     da = dxs / mott
 
     # get form factor gc
-    gc = numpy.sqrt(a - 8 / 9 * (eta * gq_0)**2 + 2 / 3 * eta * gm_0**2)
+    gc = numpy.sqrt(a - (8 / 9 * (eta * gq_0)**2 + 2 / 3 * eta * gm_0**2))
     dgc = da / (2 * gc)
 
     return q2, dq2, gc, dgc

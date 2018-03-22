@@ -57,8 +57,8 @@ for i_fit in range(1000):
         yield_1gev += yields_1gev[numpy.random.randint(n)]
         yield_2gev += yields_2gev[numpy.random.randint(n)]
     systematics = numpy.sqrt(sim_configs.error_of_acceptance**2 + sim_configs.error_of_detector**2 + sim_configs.error_of_event_selection**2)
-    #yield_1gev = yield_1gev * numpy.random.normal(1, systematics)
-    #yield_2gev = yield_2gev * numpy.random.normal(1, systematics)
+    yield_1gev = yield_1gev * numpy.random.normal(1, systematics, len(yield_1gev))
+    yield_2gev = yield_2gev * numpy.random.normal(1, systematics, len(yield_2gev))
 
     dyield_1gev = numpy.sqrt(yield_1gev)
     dyield_2gev = numpy.sqrt(yield_2gev)
@@ -66,8 +66,11 @@ for i_fit in range(1000):
     lumi_1gev = n * 177.34404
     lumi_2gev = n * 735.34935
 
-    q2_1gev, dq2_1gev, gc_1gev, dgc_1gev = cal_gc(1.1, yield_1gev, dyield_1gev, lumi_1gev, rad_cor_1gev, drad_cor_1gev)
-    q2_2gev, dq2_2gev, gc_2gev, dgc_2gev = cal_gc(2.2, yield_2gev, dyield_2gev, lumi_2gev, rad_cor_2gev, drad_cor_2gev)
+    systematics = sim_configs.error_of_radiative_correction
+    q2_1gev, dq2_1gev, gc_1gev, dgc_1gev = cal_gc(1.1, yield_1gev, dyield_1gev, lumi_1gev,
+                                                  rad_cor_1gev * numpy.random.normal(1, systematics, len(rad_cor_1gev)), drad_cor_1gev)
+    q2_2gev, dq2_2gev, gc_2gev, dgc_2gev = cal_gc(2.2, yield_2gev, dyield_2gev, lumi_2gev,
+                                                  rad_cor_2gev * numpy.random.normal(1, systematics, len(rad_cor_2gev)), drad_cor_2gev)
 
     # data selection:
     # 2:-5 is 0.7 ~ 6.0 deg
@@ -88,7 +91,7 @@ for i_fit in range(1000):
     fitter = RFitter()
     fitter.load_data(q2=q2_fit, ge=gc_fit, dge=dgc_fit)
     fitter.set_range(0.0, 1.5)
-    r, _ = fitter.fit(model=('ratio', 1, 1), method='least_squares', r0=2.130)
+    r, _ = fitter.fit(model=('ratio', 1, 1), method='least_squares', r0=2.094)
 
     print(i_fit, r)
 
@@ -104,11 +107,7 @@ font = {'size': 12}
 fig = plt.Figure()
 ax = plt.gca()
 ax.minorticks_on()
-#plt.xlabel(r'$q2 / fm^{-2}$')
-#plt.xscale('log')
-#plt.errorbar(q2_1, gc_1, yerr=dgc_1, fmt='r.')
-#plt.errorbar(q2_2, gc_2, yerr=dgc_2, fmt='b.')
-#plt.plot(q2_fit[index_q2], gc_0, 'k--')
-plt.hist(result, bins=50, range=(2.03, 2.13), histtype='step')
+plt.xlabel(r'$r / fm$')
+plt.hist(result, bins=50, range=(2.05, 2.13), histtype='step')
 plt.text(0.1, 0.8, r'$r\,={:6.4f}$'.format(r_ave) + '\n' + r'$\sigma={:6.4f}$'.format(r_error), transform=ax.transAxes, fontdict=font)
 plt.show()
