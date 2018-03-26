@@ -12,9 +12,9 @@ from . import form_factors
 
 __all__ = ['get_ef', 'mott', 'ee', 'ep', 'ed']
 
-_m_e = constants.value("electron mass energy equivalent in MeV") * 1e-3
-_m_p = constants.value("proton mass energy equivalent in MeV") * 1e-3
-_m_d = constants.value("deuteron mass energy equivalent in MeV") * 1e-3
+_m_e = constants.value('electron mass energy equivalent in MeV') * 1e-3
+_m_p = constants.value('proton mass energy equivalent in MeV') * 1e-3
+_m_d = constants.value('deuteron mass energy equivalent in MeV') * 1e-3
 _m2_e = _m_e**2
 _m2_p = _m_p**2
 _m2_d = _m_d**2
@@ -53,15 +53,15 @@ def ee(ei_1, theta_1):
     # s = (ei_1 + _m_e)**2 - pi_1**2  # (vi_1 + vi_2) * (vi_1 + vi_2)
     # t = (ef_1 - ei_1)**2 - (pf_1 * sin_theta)**2 - (pf_1 * cos_theta - pi_1)**2  # (vf_1 - vi_1) * (vf_1 - vi_1)
     # u = (ef_1 - _m_e)**2 - (pf_1 * sin_theta)**2 - (pf_1 * cos_theta)**2  # (vf_1 - vi_2) * (vf_1 - vi_2)
-    s = 2 * _m_e * (_m_e + ei_1)
-    t = 2 * (_m2_e - ei_1 * ef_1 + pi_1 * pf_1 * cos_theta)
-    u = 2 * _m_e * (_m_e - ef_1)
+    ss = 2 * _m_e * (_m_e + ei_1)
+    tt = 2 * (_m2_e - ei_1 * ef_1 + pi_1 * pf_1 * cos_theta)
+    uu = 2 * _m_e * (_m_e - ef_1)
 
-    a_dir = (s - 2 * _m2_e)**2 + (u - 2 * _m2_e)**2 + 4 * _m2_e * t
-    a_ex = (s - 2 * _m2_e)**2 + (t - 2 * _m2_e)**2 + 4 * _m2_e * u
-    a_int = -(s - 2 * _m2_e) * (s - 6 * _m2_e)
+    a_dir = (ss - 2 * _m2_e)**2 + (uu - 2 * _m2_e)**2 + 4 * _m2_e * tt
+    a_ex = (ss - 2 * _m2_e)**2 + (tt - 2 * _m2_e)**2 + 4 * _m2_e * uu
+    a_int = -(ss - 2 * _m2_e) * (ss - 6 * _m2_e)
 
-    return 2 * _alpha**2 * (cos_theta / (ei_1 + _m_e - C)) * (a_dir / t**2 + a_ex / u**2 - 2 * a_int / (t * u)) * _inv_gev_to_mkb
+    return 2 * _alpha**2 * (cos_theta / (ei_1 + _m_e - C)) * (a_dir / tt**2 + a_ex / uu**2 - 2 * a_int / (tt * uu)) * _inv_gev_to_mkb
 
 
 def ep(ei_e, theta_e):

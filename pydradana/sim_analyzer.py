@@ -30,7 +30,7 @@ def _get_xs_sin_func(xs_func, ei):
 def get_integrated_born_xs(ei):
     born_xs_sin_func = _get_xs_sin_func(born_xs.ed, ei)
 
-    xs_0, dxs_0 = numpy.array([integrate.quad(born_xs_sin_func, _theta_edges[i], _theta_edges[i + 1]) for i in range(len(_theta_edges) - 1)]).T
+    xs_0, dxs_0 = numpy.array([integrate.quad(born_xs_sin_func, low, high) for low, high in zip(_theta_edges, _theta_edges[1:])]).T
     xs_0 = xs_0 / _omega
     dxs_0 = dxs_0 / _omega
 

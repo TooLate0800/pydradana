@@ -45,7 +45,7 @@ def do_fit(N=100000, model_gen='dipole', model_fit='dipole', r0=2.130, lock=None
     r_d = r_mean - 4 * r_std
 
     hist, bin_edges = numpy.histogram(result, bins=200, range=(r_d, r_u))
-    x = [(bin_edges[i] + bin_edges[i + 1]) / 2.0 for i in range(len(bin_edges) - 1)]
+    x = [(low + high) / 2.0 for low, high in zip(bin_edges, bin_edges[1:])]
 
     try:
         popt, _ = curve_fit(gaus, x, hist, p0=[N / 200, r_mean, 0.1], bounds=([0, r_d, 0], [numpy.inf, r_u, numpy.inf]))

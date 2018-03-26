@@ -45,9 +45,7 @@ def _get_column(self, index):
     if not isinstance(index, numbers.Integral):
         raise TypeError('JaggedArray index must be an integer')
 
-    array_at_index = [
-        self.content[self.starts[i] + index] if self.starts[i] + index < self.stops[i] else numpy.nan for i in range(len(self.stops))
-    ]
+    array_at_index = [self.content[start + index] if start + index < stop else numpy.nan for start, stop in zip(self.starts, self.stops)]
 
     return numpy.array(array_at_index)
 
@@ -170,12 +168,12 @@ class SimReader(object):
         if det_type == 'tracking':
             found = []
             # for each event, build a list of fired detector's id
-            fired_did_list = numpy.split(det.DID.content, det.DID.stops)[:-1]
+            fired_did_list_list = numpy.split(det.DID.content, det.DID.stops)[:-1]
             for copyid in range(n_copy):  # search in each layer
                 found_in_copy = []
-                for i in range(len(fired_did_list)):
+                for start, fired_did_list in zip(det.DID.starts, fired_did_list_list):
                     # numpy.nonzero return an index, not a value
-                    index_list = det.DID.starts[i] + numpy.nonzero(fired_did_list[i] == copyid)[0]  # 0 means x axis
+                    index_list = start + numpy.nonzero(fired_did_list == copyid)[0]  # 0 means x axis
                     # index_list[is_good[index_list]] select only good hits
                     found_in_copy.append(index_list[is_good[index_list]][0] if any(is_good[index_list]) else -1)
                 found.append(numpy.array(found_in_copy))
@@ -183,9 +181,9 @@ class SimReader(object):
         elif det_type == 'standard' or det_type == 'calorimeter':
             found = []
             # for each event, build an is_primary list for the hits in this event
-            is_primary_list = numpy.split(is_primary, det.PTID.stops)[:-1]
-            for i in range(len(is_primary_list)):
-                index_list = det.PTID.starts[i] + numpy.nonzero(is_primary_list[i])[0]  # 0 means x axis
+            is_primary_list_list = numpy.split(is_primary, det.PTID.stops)[:-1]
+            for start, is_primary_list in zip(det.PTID.start, is_primary_list_list):
+                index_list = start + numpy.nonzero(is_primary_list)[0]  # 0 means x axis
                 found.append(index_list[is_good[index_list]][0] if any(is_good[index_list]) else -1)
             return numpy.array(found)
 

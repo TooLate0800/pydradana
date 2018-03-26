@@ -103,13 +103,13 @@ class RFitter(object):
 
     def print_data(self, select='raw'):
         if select == 'raw':
-            for i in range(len(self.q2_raw)):
-                print('{: .10f} {: .10f} {: .10f}'.format(self.q2_raw[i], self.ge_raw[i], self.dge_raw[i]))
+            for q2, ge, dge in zip(self.q2_raw, self.ge_raw, self.dge_raw):
+                print('{: .10f} {: .10f} {: .10f}'.format(q2, ge, dge))
         else:
             if self.range is not None:
                 self._select_q2()
-                for i in range(len(self.q2)):
-                    print('{: .10f} {: .10f} {: .10f}'.format(self.q2[i], self.ge[i], self.dge[i]))
+                for q2, ge, dge in zip(self.q2, self.ge, self.dge):
+                    print('{: .10f} {: .10f} {: .10f}'.format(q2, ge, dge))
 
     def set_range(self, lo=0.0, hi=0.5):
         self.range = [lo, hi]

@@ -4,9 +4,9 @@ import numpy
 from scipy import constants
 
 # constants
-m_e = constants.value("electron mass energy equivalent in MeV") * 1e-3
-m_p = constants.value("proton mass energy equivalent in MeV") * 1e-3
-m_d = constants.value("deuteron mass energy equivalent in MeV") * 1e-3
+m_e = constants.value('electron mass energy equivalent in MeV') * 1e-3
+m_p = constants.value('proton mass energy equivalent in MeV') * 1e-3
+m_d = constants.value('deuteron mass energy equivalent in MeV') * 1e-3
 alpha = constants.alpha
 mu_p = constants.value('proton mag. mom. to nuclear magneton ratio')
 inv_fm_to_gev = constants.hbar * constants.c / constants.e * 1e6  # fm^{-1} to GeV
