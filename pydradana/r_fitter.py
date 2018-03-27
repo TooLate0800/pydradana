@@ -6,6 +6,7 @@ from functools import reduce
 
 import math
 
+import minuit2
 import numpy
 from numpy.random import normal, uniform
 from lmfit import Minimizer, Parameters, fit_report
@@ -90,6 +91,41 @@ class RFitter(object):
             parvals = pars.valuesdict()
             result = model_func(self.q2, [parvals['p{}'.format(i)] for i in range(n_pars)], *args, **kwargs)
             return (result - self.ge) / self.dge
+
+        return residual
+
+    def _get_residual_func_minuit2(self, model_func, n_pars, *args, **kwargs):
+
+        if n_pars == 2:
+
+            def residual(a, b):  # pyMinuit2 does not accept argument names containing numbers, do not know why
+                result = model_func(self.q2, [a, b], *args, **kwargs)
+                return numpy.sum(((result - self.ge) / self.dge)**2)
+        elif n_pars == 3:
+
+            def residual(a, b, c):
+                result = model_func(self.q2, [a, b, c], *args, **kwargs)
+                return numpy.sum(((result - self.ge) / self.dge)**2)
+        elif n_pars == 4:
+
+            def residual(a, b, c, d):
+                result = model_func(self.q2, [a, b, c, d], *args, **kwargs)
+                return numpy.sum(((result - self.ge) / self.dge)**2)
+        elif n_pars == 5:
+
+            def residual(a, b, c, d, e):
+                result = model_func(self.q2, [a, b, c, d, e], *args, **kwargs)
+                return numpy.sum(((result - self.ge) / self.dge)**2)
+        elif n_pars == 6:
+
+            def residual(a, b, c, d, e, f):
+                result = model_func(self.q2, [a, b, c, d, e, f], *args, **kwargs)
+                return numpy.sum(((result - self.ge) / self.dge)**2)
+        elif n_pars == 7:
+
+            def residual(a, b, c, d, e, f, g):
+                result = model_func(self.q2, [a, b, c, d, e, f, g], *args, **kwargs)
+                return (result - self.ge) / self.dge
 
         return residual
 
@@ -183,33 +219,62 @@ class RFitter(object):
         if model == 'poly-z':
             self._convert_q2_z()
 
-        residual_func = self._get_residual_func(model_func, n_pars, order)
+        if 'method' in kwargs and kwargs['method'] == 'minuit2':
+            residule_func = self._get_residual_func_minuit2(model_func, n_pars, order)
 
-        params = Parameters()
-        params.add('p0', value=1.0, vary=float_norm, min=0.95, max=1.05)
-        params.add('p1', value=p1_guess, min=p1_guess - 0.5 * math.fabs(p1_guess), max=p1_guess + 0.5 * math.fabs(p1_guess))
-        for i in range(2, n_pars):
-            params.add('p{}'.format(i), value=0)
+            fitter = minuit2.Minuit2(residule_func)
 
-        fitter = Minimizer(residual_func, params)
+            fitter.values['a'] = 1.0
+            fitter.values['b'] = p1_guess
+            for i in range(2, n_pars):
+                fitter.values[chr(ord('a') + i)] = 0.0
 
-        def is_close(a, a0, tolerance=1e-4):
-            return math.fabs(a - a0) < tolerance * math.fabs(a0)
+            for _ in range(5):
+                try:
+                    fitter.migrad()
+                except minuit2.MinuitError:
+                    for i in range(2, n_pars):
+                        fitter.values[chr(ord('a') + i)] = normal()
+                    no_exception = False
+                else:
+                    no_exception = True
+                    break
 
-        for i in range(5):
-            fit_result = fitter.minimize(*args, **kwargs)
-
-            par1 = fit_result.params['p1']
-            if is_close(par1.value, par1.min, 1e-2) or is_close(par1.value, par1.max, 1e-2):
-                for j in range(2, n_pars):
-                    params['p{}'.format(j)].value = normal()
+            if no_exception:
+                p1 = fitter.values['b']
+                chisqr = fitter.fval
             else:
-                if __name__ == '__main__':  # debug info
-                    print(fit_report(fit_result))
-                break
+                p1 = 0
+                chisqr = 0
+        else:
+            residual_func = self._get_residual_func(model_func, n_pars, order)
 
-        p1 = par1.value
-        chisqr = fit_result.chisqr
+            params = Parameters()
+            params.add('p0', value=1.0, vary=float_norm, min=0.95, max=1.05)
+            params.add('p1', value=p1_guess, min=p1_guess - 0.5 * math.fabs(p1_guess), max=p1_guess + 0.5 * math.fabs(p1_guess))
+            for i in range(2, n_pars):
+                params.add('p{}'.format(i), value=0)
+
+            fitter = Minimizer(residual_func, params)
+
+            def is_close(a, a0, tolerance=1e-4):
+                return math.fabs(a - a0) < tolerance * math.fabs(a0)
+
+            for i in range(5):
+                fit_result = fitter.minimize(*args, **kwargs)
+
+                par1 = fit_result.params['p1']
+                if is_close(par1.value, par1.min, 1e-2) or is_close(par1.value, par1.max, 1e-2):
+                    for j in range(2, n_pars):
+                        params['p{}'.format(j)].value = normal()
+                else:
+                    if __name__ == '__main__':  # debug info
+                        print(fit_report(fit_result))
+                    break
+
+            p1 = par1.value
+            chisqr = fit_result.chisqr
+
         if model == 'monopole' or model == 'gaussian':
             r = math.sqrt(6 / p1)
         elif model == 'dipole':

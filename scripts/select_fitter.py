@@ -34,7 +34,7 @@ def do_fit(N=100000, model_gen='dipole', model_fit='dipole', r0=2.130, lock=None
         fitter.gen_model(model=model_gen, r0=r0)
         fitter.add_noise(model='gaussian')
 
-        r, _ = fitter.fit(model=model_fit, method='least_squares', r0=r0)
+        r, _ = fitter.fit(model=model_fit, method='minuit2', r0=r0)
 
         result[i - 1] = r
 
