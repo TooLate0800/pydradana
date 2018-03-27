@@ -41,13 +41,13 @@ def get_bin_center_correction(ei):
     xs_0, _ = get_integrated_born_xs(ei)
     xs_0_center = born_xs.ed(ei, _theta)
 
-    cor = xs_0_center - xs_0
+    cor = xs_0_center / xs_0
     dcor = numpy.zeros(cor.shape)
 
     return cor, dcor
 
 
-def calculate_gc(ei, lumi, yield_, dyield_, rad_cor, drad_cor, model='abbott_2000_1'):
+def calculate_gc(ei, lumi, yield_, dyield_, rad_cor, drad_cor, model='Abbott-2000-1'):
     # calculate q2 in fm
     ef = born_xs.get_ef(ei, _theta, _m_d)
     q2 = 4 * ei * ef * numpy.sin(_theta / 2)**2
@@ -61,7 +61,7 @@ def calculate_gc(ei, lumi, yield_, dyield_, rad_cor, drad_cor, model='abbott_200
 
     # apply radiative correction and bin center correction
     bin_center_cor, _ = get_bin_center_correction(ei)
-    xs = xs_raw * rad_cor + bin_center_cor
+    xs = xs_raw * rad_cor * bin_center_cor
     dxs = numpy.sqrt((dxs_raw / xs_raw)**2 + (drad_cor / rad_cor)**2) * xs
 
     # add systematics

@@ -38,8 +38,11 @@ def do_fit(N=100000, model_gen='dipole', model_fit='dipole', r0=2.130, lock=None
 
         result[i - 1] = r
 
+    r_n = numpy.count_nonzero((result < r0 * 1.15) & (result > r0 * 0.85))
     r_mean = numpy.mean(result[(result < r0 * 1.15) & (result > r0 * 0.85)])
     r_std = numpy.std(result[(result < r0 * 1.15) & (result > r0 * 0.85)])
+
+    r_bias = numpy.fabs(r_mean - r0)
 
     r_u = r_mean + 4 * r_std
     r_d = r_mean - 4 * r_std
@@ -53,12 +56,15 @@ def do_fit(N=100000, model_gen='dipole', model_fit='dipole', r0=2.130, lock=None
         popt = None
 
     model_fit_string = model_fit if not isinstance(model_fit, tuple) else '-'.join(map(str, model_fit))
+    format_string = '{:<13}  {:>9}  {:.3f}  {:.6f}  {:.6f}  {:.6f}  {:.6f}'
+
     if lock is not None:
         with lock:
             with open(join(output_path, 'result.dat'), mode='a+') as fo:
-                fo.write('{:<19}  {:>9}  {:.10f}  {:.10f}\n'.format(model_gen, model_fit_string, r_mean, r_std))
+                fo.write(format_string.format(model_gen, model_fit_string, r_n / N, r_mean, r_bias, r_std, numpy.sqrt(r_bias**2 + r_std**2)))
+                fo.write('\n')
 
-    print('{:<19}  {:<9}  {:.10f}  {:.10f}'.format(model_gen, model_fit_string, r_mean, r_std))
+    print(format_string.format(model_gen, model_fit_string, r_n / N, r_mean, r_bias, r_std, numpy.sqrt(r_bias**2 + r_std**2)))
 
     font = {'size': 12}
 
@@ -81,8 +87,31 @@ if exists(join(output_path, 'result.dat')):
 # ]  # proton
 list_model_gen = ['dipole', 'monopole', 'gaussian', 'Abbott-2000-1', 'Abbott-2000-2']  # deuteron
 list_model_fit = [
-    'dipole', 'monopole', 'gaussian', ('poly', 2), ('poly', 3), ('poly', 4), ('ratio', 1, 1), ('ratio', 1, 2), ('ratio', 2, 1),
-    ('ratio', 2, 2), ('cf', 1), ('cf', 2), ('cf', 3), ('cf', 4), ('poly-z', 2), ('poly-z', 3), ('poly-z', 4)
+    'dipole',
+    'monopole',
+    'gaussian',
+    ('poly', 2),
+    ('poly', 3),
+    ('poly', 4),
+    ('poly', 5),
+    ('ratio', 1, 1),
+    ('ratio', 1, 2),
+    ('ratio', 2, 1),
+    ('ratio', 1, 3),
+    ('ratio', 2, 2),
+    ('ratio', 3, 1),
+    ('ratio', 1, 4),
+    ('ratio', 2, 3),
+    ('ratio', 3, 2),
+    ('ratio', 4, 1),
+    ('cf', 2),
+    ('cf', 3),
+    ('cf', 4),
+    ('cf', 5),
+    ('poly-z', 2),
+    ('poly-z', 3),
+    ('poly-z', 4),
+    ('poly-z', 5),
 ]  # full
 
 l = multiprocessing.Manager().Lock()
@@ -90,7 +119,10 @@ pool = multiprocessing.Pool()
 
 for f in list_model_fit:
     for g in list_model_gen:
-        pool.apply_async(do_fit, args=(100000, g, f, 2.094, l))
+        if g == 'Abbott-2000-2':
+            pool.apply_async(do_fit, args=(150000, g, f, 2.088, l))
+        else:
+            pool.apply_async(do_fit, args=(150000, g, f, 2.094, l))
 
 pool.close()
 pool.join()
