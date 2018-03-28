@@ -4,12 +4,10 @@
 from __future__ import division, print_function
 from functools import reduce
 
-import math
-
-import minuit2
+import iminuit
 import numpy
 from numpy.random import normal, uniform
-from lmfit import Minimizer, Parameters, fit_report
+from lmfit import Minimizer, Parameters
 from scipy import constants
 from scipy.interpolate import interp1d
 
@@ -40,7 +38,7 @@ class RFitter(object):
 
     def _convert_q2_z(self):
         s_tc_p_q2 = numpy.sqrt(self._tc + self.q2)
-        s_tc_m_q2 = math.sqrt(self._tc)  # ignore 0
+        s_tc_m_q2 = numpy.sqrt(self._tc)  # ignore 0
         self.q2 = (s_tc_p_q2 - s_tc_m_q2) / (s_tc_p_q2 + s_tc_m_q2)
 
     @staticmethod
@@ -94,38 +92,11 @@ class RFitter(object):
 
         return residual
 
-    def _get_residual_func_minuit2(self, model_func, n_pars, *args, **kwargs):
+    def _get_residual_func_minuit(self, model_func, n_pars, *args, **kwargs):
 
-        if n_pars == 2:
-
-            def residual(a, b):  # pyMinuit2 does not accept argument names containing numbers, do not know why
-                result = model_func(self.q2, [a, b], *args, **kwargs)
-                return numpy.sum(((result - self.ge) / self.dge)**2)
-        elif n_pars == 3:
-
-            def residual(a, b, c):
-                result = model_func(self.q2, [a, b, c], *args, **kwargs)
-                return numpy.sum(((result - self.ge) / self.dge)**2)
-        elif n_pars == 4:
-
-            def residual(a, b, c, d):
-                result = model_func(self.q2, [a, b, c, d], *args, **kwargs)
-                return numpy.sum(((result - self.ge) / self.dge)**2)
-        elif n_pars == 5:
-
-            def residual(a, b, c, d, e):
-                result = model_func(self.q2, [a, b, c, d, e], *args, **kwargs)
-                return numpy.sum(((result - self.ge) / self.dge)**2)
-        elif n_pars == 6:
-
-            def residual(a, b, c, d, e, f):
-                result = model_func(self.q2, [a, b, c, d, e, f], *args, **kwargs)
-                return numpy.sum(((result - self.ge) / self.dge)**2)
-        elif n_pars == 7:
-
-            def residual(a, b, c, d, e, f, g):
-                result = model_func(self.q2, [a, b, c, d, e, f, g], *args, **kwargs)
-                return (result - self.ge) / self.dge
+        def residual(*pars):
+            result = model_func(self.q2, list(pars), *args, **kwargs)
+            return numpy.sum(((result - self.ge) / self.dge)**2)
 
         return residual
 
@@ -172,7 +143,7 @@ class RFitter(object):
 
     def add_noise(self, model='gaussian', *args, **kwargs):
         if model == 'uniform':
-            self.ge_raw = self.ge_raw + uniform(-math.sqrt(3) * self.dge_raw, math.sqrt(3) * self.dge_raw)
+            self.ge_raw = self.ge_raw + uniform(-numpy.sqrt(3) * self.dge_raw, numpy.sqrt(3) * self.dge_raw)
         elif model == 'gaussian':
             self.ge_raw = self.ge_raw + normal(0, self.dge_raw)
         elif model == 'scale':
@@ -219,71 +190,76 @@ class RFitter(object):
         if model == 'poly-z':
             self._convert_q2_z()
 
-        if 'method' in kwargs and kwargs['method'] == 'minuit2':
-            residule_func = self._get_residual_func_minuit2(model_func, n_pars, order)
+        abs_p1_guess = numpy.fabs(p1_guess)
 
-            fitter = minuit2.Minuit2(residule_func)
+        def is_close(a, a0, tolerance=1e-4):
+            return numpy.fabs(a - a0) < tolerance
 
-            fitter.values['a'] = 1.0
-            fitter.values['b'] = p1_guess
+        if 'method' in kwargs and kwargs['method'] == 'minuit':
+            residule_func = self._get_residual_func_minuit(model_func, n_pars, order)
+
+            parameters = ['p0', 'p1']
+            init_values = {}
+            init_values['p0'] = 1
+            init_values['error_p0'] = 0.01
+            init_values['limit_p0'] = (0.95, 1.05)
+            if not float_norm:
+                init_values['fix_p0'] = True
+            init_values['p1'] = p1_guess
+            init_values['error_p1'] = abs_p1_guess * 0.01
+            init_values['limit_p1'] = (p1_guess - 0.5 * abs_p1_guess, p1_guess + 0.5 * abs_p1_guess)
             for i in range(2, n_pars):
-                fitter.values[chr(ord('a') + i)] = 0.0
+                parameters.append('p{}'.format(i))
+                init_values['p{}'.format(i)] = 0
+                init_values['error_p{}'.format(i)] = 0.01
 
-            for _ in range(5):
-                try:
-                    fitter.migrad()
-                except minuit2.MinuitError:
+            for _ in range(100):
+                fitter = iminuit.Minuit(residule_func, forced_parameters=parameters, pedantic=False, print_level=0, **init_values)
+                fitter.migrad()
+
+                p1 = fitter.values['p1']
+                p1_min, p1_max = init_values['limit_p1']
+                if is_close(p1, p1_min, 5e-2 * abs_p1_guess) or is_close(p1, p1_max, 5e-2 * abs_p1_guess):
                     for i in range(2, n_pars):
-                        fitter.values[chr(ord('a') + i)] = normal()
-                    no_exception = False
+                        init_values['p{}'.format(i)] = normal()
                 else:
-                    no_exception = True
                     break
 
-            if no_exception:
-                p1 = fitter.values['b']
-                chisqr = fitter.fval
-            else:
-                p1 = 0
-                chisqr = 0
+            p1 = fitter.values['p1']
+            chisqr = fitter.fval
         else:
             residual_func = self._get_residual_func(model_func, n_pars, order)
 
             params = Parameters()
             params.add('p0', value=1.0, vary=float_norm, min=0.95, max=1.05)
-            params.add('p1', value=p1_guess, min=p1_guess - 0.5 * math.fabs(p1_guess), max=p1_guess + 0.5 * math.fabs(p1_guess))
+            params.add('p1', value=p1_guess, min=p1_guess - 0.5 * abs_p1_guess, max=p1_guess + 0.5 * abs_p1_guess)
             for i in range(2, n_pars):
                 params.add('p{}'.format(i), value=0)
 
             fitter = Minimizer(residual_func, params)
 
-            def is_close(a, a0, tolerance=1e-4):
-                return math.fabs(a - a0) < tolerance * math.fabs(a0)
-
-            for i in range(5):
+            for _ in range(100):
                 fit_result = fitter.minimize(*args, **kwargs)
 
                 par1 = fit_result.params['p1']
-                if is_close(par1.value, par1.min, 1e-2) or is_close(par1.value, par1.max, 1e-2):
-                    for j in range(2, n_pars):
-                        params['p{}'.format(j)].value = normal()
+                if is_close(par1.value, par1.min, 5e-2 * abs_p1_guess) or is_close(par1.value, par1.max, 5e-2 * abs_p1_guess):
+                    for i in range(2, n_pars):
+                        params['p{}'.format(i)].value = normal()
                 else:
-                    if __name__ == '__main__':  # debug info
-                        print(fit_report(fit_result))
                     break
 
             p1 = par1.value
             chisqr = fit_result.chisqr
 
         if model == 'monopole' or model == 'gaussian':
-            r = math.sqrt(6 / p1)
+            r = numpy.sqrt(6 / p1)
         elif model == 'dipole':
-            r = math.sqrt(12 / p1)
+            r = numpy.sqrt(12 / p1)
         elif model == 'poly' or model == 'ratio':
-            r = math.sqrt(-6 * p1)
+            r = numpy.sqrt(-6 * p1)
         elif model == 'cf':
-            r = math.sqrt(6 * p1)
+            r = numpy.sqrt(6 * p1)
         elif model == 'poly-z':
-            r = math.sqrt(-1.5 * p1 / self._tc)
+            r = numpy.sqrt(-1.5 * p1 / self._tc)
 
         return r, chisqr
