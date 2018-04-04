@@ -87,31 +87,8 @@ if exists(join(output_path, 'result.dat')):
 # ]  # proton
 list_model_gen = ['dipole', 'monopole', 'gaussian', 'Abbott-2000-1', 'Abbott-2000-2']  # deuteron
 list_model_fit = [
-    'dipole',
-    'monopole',
-    'gaussian',
-    ('poly', 2),
-    ('poly', 3),
-    ('poly', 4),
-    ('poly', 5),
-    ('ratio', 1, 1),
-    ('ratio', 1, 2),
-    ('ratio', 2, 1),
-    ('ratio', 1, 3),
-    ('ratio', 2, 2),
-    ('ratio', 3, 1),
-    ('ratio', 1, 4),
-    ('ratio', 2, 3),
-    ('ratio', 3, 2),
-    ('ratio', 4, 1),
-    ('cf', 2),
-    ('cf', 3),
-    ('cf', 4),
-    ('cf', 5),
-    ('poly-z', 2),
-    ('poly-z', 3),
-    ('poly-z', 4),
-    ('poly-z', 5),
+    'dipole', 'monopole', 'gaussian', ('poly', 2), ('poly', 3), ('poly', 4), ('ratio', 1, 1), ('ratio', 1, 2), ('ratio', 2, 1),
+    ('ratio', 1, 3), ('ratio', 2, 2), ('ratio', 3, 1), ('cf', 2), ('cf', 3), ('cf', 4), ('poly-z', 2), ('poly-z', 3), ('poly-z', 4)
 ]  # full
 
 l = multiprocessing.Manager().Lock()

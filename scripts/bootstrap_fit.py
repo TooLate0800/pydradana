@@ -93,7 +93,7 @@ for i_fit in range(1000):
     fitter = RFitter()
     fitter.load_data(q2=q2_fit, ge=gc_fit, dge=dgc_fit)
     fitter.set_range(0.0, 1.5)
-    r, _ = fitter.fit(model=('ratio', 1, 1), method='least_squares', r0=2.094)
+    r, _ = fitter.fit(model=('ratio', 1, 1), method='minuit', r0=2.130)
 
     print(i_fit, r)
 

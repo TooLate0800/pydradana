@@ -43,20 +43,20 @@ class RFitter(object):
 
     @staticmethod
     def _monopole(q2, p, *args, **kwargs):
-        return p[0] / (1 + q2 / p[1])
+        return p[0] / (1 + q2 * p[1]**2 / 6)
 
     @staticmethod
     def _dipole(q2, p, *args, **kwargs):
-        return p[0] / (1 + q2 / p[1])**2
+        return p[0] / (1 + q2 * p[1]**2 / 12)**2
 
     @staticmethod
     def _gaussian(q2, p, *args, **kwargs):
-        return p[0] * numpy.exp(-q2 / p[1])
+        return p[0] * numpy.exp(-q2 * p[1]**2 / 6)
 
     @staticmethod
     def _polynominal(q2, p, order, *args, **kwargs):
         N = order[0] + 1
-        return p[0] * (1 + sum([p[i] * q2**i for i in range(1, N)]))
+        return p[0] * (1 - q2 * p[1]**2 / 6 + sum([p[i] * q2**i for i in range(2, N)]))
 
     @staticmethod
     def _rational(q2, p, order, *args, **kwargs):
@@ -65,13 +65,14 @@ class RFitter(object):
         p_a = [0] + p[1:N]
         p_b = [0] + p[N:M + N]
         # notice: additional p^b_1 * Q2 in numerator
-        numerator = 1 + sum([p_a[i] * q2**i for i in range(1, N)]) + p_b[1] * q2
+        numerator = 1 - q2 * p[1]**2 / 6 + sum([p_a[i] * q2**i for i in range(2, N)]) + p_b[1] * q2
         denominator = 1 + sum([p_b[j] * q2**j for j in range(1, M)])
         return p[0] * numerator / denominator
 
     @staticmethod
     def _continued_fractional(q2, p, order, *args, **kwargs):
-        return p[0] / reduce(lambda x, y: 1 + y / x, [1] + [p[i] * q2 for i in range(order[0], 0, -1)])
+        result = reduce(lambda x, y: 1 + y / x, [1] + [p[i] * q2 for i in range(order[0], 1, -1)])
+        return p[0] / (1 + q2 * p[1] * p[1] / 6 / result)
 
     # Form factors from file
     @staticmethod
@@ -157,30 +158,26 @@ class RFitter(object):
         order = model[1:] if isinstance(model, (tuple, list)) else None
         model = model[0] if isinstance(model, (tuple, list)) else model
 
-        n_pars, p1_guess = 2, 6 / r0**2
+        n_pars, r_guess = 2, r0
         if model == 'monopole':
             model_func = self._monopole
         elif model == 'dipole':
             model_func = self._dipole
-            p1_guess = 12 / r0**2
         elif model == 'gaussian':
             model_func = self._gaussian
         elif model == 'poly':
             model_func = self._polynominal
             n_pars = order[0] + 1
-            p1_guess = -r0**2 / 6
         elif model == 'ratio':
             model_func = self._rational
             n_pars = order[0] + order[1] + 1
-            p1_guess = -r0**2 / 6
         elif model == 'cf':
             model_func = self._continued_fractional
             n_pars = order[0] + 1
-            p1_guess = r0**2 / 6
         elif model == 'poly-z':
             model_func = self._polynominal
             n_pars = order[0] + 1
-            p1_guess = -r0**2 * self._tc / 1.5
+            r_guess = r_guess * numpy.sqrt(4 * self._tc)
         else:
             print('model {} is not valid'.format(model))
             return None, None, None, None
@@ -190,7 +187,7 @@ class RFitter(object):
         if model == 'poly-z':
             self._convert_q2_z()
 
-        abs_p1_guess = numpy.fabs(p1_guess)
+        abs_r_guess = numpy.fabs(r_guess)
 
         def is_close(a, a0, tolerance=1e-4):
             return numpy.fabs(a - a0) < tolerance
@@ -201,13 +198,13 @@ class RFitter(object):
             parameters = ['p0', 'p1']
             init_values = {}
             init_values['p0'] = 1
-            init_values['error_p0'] = 0.01
+            init_values['error_p0'] = 0.001
             init_values['limit_p0'] = (0.95, 1.05)
             if not float_norm:
                 init_values['fix_p0'] = True
-            init_values['p1'] = p1_guess
-            init_values['error_p1'] = abs_p1_guess * 0.01
-            init_values['limit_p1'] = (p1_guess - 0.5 * abs_p1_guess, p1_guess + 0.5 * abs_p1_guess)
+            init_values['p1'] = r_guess
+            init_values['error_p1'] = abs_r_guess * 0.01
+            init_values['limit_p1'] = (r_guess - 0.5 * abs_r_guess, r_guess + 0.5 * abs_r_guess)
             for i in range(2, n_pars):
                 parameters.append('p{}'.format(i))
                 init_values['p{}'.format(i)] = 0
@@ -219,20 +216,20 @@ class RFitter(object):
 
                 p1 = fitter.values['p1']
                 p1_min, p1_max = init_values['limit_p1']
-                if is_close(p1, p1_min, 5e-2 * abs_p1_guess) or is_close(p1, p1_max, 5e-2 * abs_p1_guess):
+                if is_close(p1, p1_min, 5e-2 * abs_r_guess) or is_close(p1, p1_max, 5e-2 * abs_r_guess):
                     for i in range(2, n_pars):
                         init_values['p{}'.format(i)] = normal()
                 else:
                     break
 
-            p1 = fitter.values['p1']
+            r = fitter.values['p1']
             chisqr = fitter.fval
         else:
             residual_func = self._get_residual_func(model_func, n_pars, order)
 
             params = Parameters()
             params.add('p0', value=1.0, vary=float_norm, min=0.95, max=1.05)
-            params.add('p1', value=p1_guess, min=p1_guess - 0.5 * abs_p1_guess, max=p1_guess + 0.5 * abs_p1_guess)
+            params.add('p1', value=r_guess, min=r_guess - 0.5 * abs_r_guess, max=r_guess + 0.5 * abs_r_guess)
             for i in range(2, n_pars):
                 params.add('p{}'.format(i), value=0)
 
@@ -242,24 +239,16 @@ class RFitter(object):
                 fit_result = fitter.minimize(*args, **kwargs)
 
                 par1 = fit_result.params['p1']
-                if is_close(par1.value, par1.min, 5e-2 * abs_p1_guess) or is_close(par1.value, par1.max, 5e-2 * abs_p1_guess):
+                if is_close(par1.value, par1.min, 5e-2 * abs_r_guess) or is_close(par1.value, par1.max, 5e-2 * abs_r_guess):
                     for i in range(2, n_pars):
                         params['p{}'.format(i)].value = normal()
                 else:
                     break
 
-            p1 = par1.value
+            r = par1.value
             chisqr = fit_result.chisqr
 
-        if model == 'monopole' or model == 'gaussian':
-            r = numpy.sqrt(6 / p1)
-        elif model == 'dipole':
-            r = numpy.sqrt(12 / p1)
-        elif model == 'poly' or model == 'ratio':
-            r = numpy.sqrt(-6 * p1)
-        elif model == 'cf':
-            r = numpy.sqrt(6 * p1)
-        elif model == 'poly-z':
-            r = numpy.sqrt(-1.5 * p1 / self._tc)
+        if model == 'poly-z':
+            r = r / numpy.sqrt(4 * self._tc)
 
         return r, chisqr
