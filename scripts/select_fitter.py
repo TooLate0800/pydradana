@@ -22,7 +22,7 @@ def gaus(x, C, mu, sigma):
 
 
 def do_fit(N=100000, model_gen='dipole', model_fit='dipole', r0=2.130, lock=None):
-    print('generation model = {}, fit model = {}'.format(model_gen, model_fit))
+    print(f'generation model = {model_gen}, fit model = {model_fit}')
 
     result = numpy.empty(N, dtype=float)
 
@@ -74,8 +74,8 @@ def do_fit(N=100000, model_gen='dipole', model_fit='dipole', r0=2.130, lock=None
     plt.hist(result, bins=200, range=(r_d, r_u), histtype='step')
     if popt is not None:
         plt.plot(x, gaus(x, *popt), label='fit')
-    plt.text(0.1, 0.8, r'$r\,={:6.4f}$'.format(r_mean) + '\n' + r'$\sigma={:6.4f}$'.format(r_std), transform=ax.transAxes, fontdict=font)
-    fig.savefig(join(output_path, '{}-{}.pdf'.format(model_gen, model_fit_string)))
+    plt.text(0.1, 0.8, fr'$r\,={r_mean:6.4f}$' + '\n' + fr'$\sigma={r_std:6.4f}$', transform=ax.transAxes, fontdict=font)
+    fig.savefig(join(output_path, f'{model_gen}-{model_fit_string}.pdf'))
     plt.close()
 
 

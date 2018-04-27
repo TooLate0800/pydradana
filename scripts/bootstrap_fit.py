@@ -87,8 +87,8 @@ for i_fit in range(1000):
     # with open('bin_errors.dat', 'w') as f:
     #     f.write('105\n')
     #     for q2_i, dq2_i, gc_i, dgc_i in zip(q2_fit[index_q2], dq2_fit[index_q2], gc_fit[index_q2], dgc_fit[index_q2]):
-    #         print('{:8.6f} {:12.6e} {:12.6e}'.format(q2_i, gc_i, dgc_i))
-    #         f.write('{:8.6f} {:12.6e} {:12.6e}\n'.format(q2_i, gc_i, dgc_i))
+    #         print(f'{q2_i:8.6f} {gc_i:12.6e} {dgc_i:12.6e}')
+    #         f.write(f'{q2_i:8.6f} {gc_i:12.6e} {dgc_i:12.6e}\n')
 
     fitter = RFitter()
     fitter.load_data(q2=q2_fit, ge=gc_fit, dge=dgc_fit)
@@ -111,5 +111,5 @@ ax = plt.gca()
 ax.minorticks_on()
 plt.xlabel(r'$r / fm$')
 plt.hist(result, bins=50, range=(2.05, 2.13), histtype='step')
-plt.text(0.1, 0.8, r'$r\,={:6.4f}$'.format(r_ave) + '\n' + r'$\sigma={:6.4f}$'.format(r_error), transform=ax.transAxes, fontdict=font)
+plt.text(0.1, 0.8, fr'$r\,={r_ave:6.4f}$' + '\n' + fr'$\sigma={r_error:6.4f}$', transform=ax.transAxes, fontdict=font)
 plt.show()

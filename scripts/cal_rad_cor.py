@@ -42,7 +42,7 @@ dyields = numpy.sqrt(yields)
 lumi = n_files * lumi_per_file
 result['yields'] = numpy.copy(yields)
 
-print('loaded {} files'.format(n_files))
+print(f'loaded {n_files} files')
 
 # convert to differential cross-section
 omega = -2 * numpy.pi * numpy.diff(numpy.cos(theta_edges))

@@ -4,6 +4,8 @@
 from __future__ import division, print_function
 from functools import reduce
 
+import math
+
 import iminuit
 import numpy
 from numpy.random import normal, uniform
@@ -88,7 +90,7 @@ class RFitter(object):
 
         def residual(pars):
             parvals = pars.valuesdict()
-            result = model_func(self.q2, [parvals['p{}'.format(i)] for i in range(n_pars)], *args, **kwargs)
+            result = model_func(self.q2, [parvals[f'p{i}'] for i in range(n_pars)], *args, **kwargs)
             return (result - self.ge) / self.dge
 
         return residual
@@ -112,12 +114,12 @@ class RFitter(object):
     def print_data(self, select='raw'):
         if select == 'raw':
             for q2, ge, dge in zip(self.q2_raw, self.ge_raw, self.dge_raw):
-                print('{: .10f} {: .10f} {: .10f}'.format(q2, ge, dge))
+                print(f'{q2: .10f} {ge: .10f} {dge: .10f}')
         else:
             if self.range is not None:
                 self._select_q2()
                 for q2, ge, dge in zip(self.q2, self.ge, self.dge):
-                    print('{: .10f} {: .10f} {: .10f}'.format(q2, ge, dge))
+                    print(f'{q2: .10f} {ge: .10f} {dge: .10f}')
 
     def set_range(self, lo=0.0, hi=0.5):
         self.range = [lo, hi]
@@ -179,7 +181,7 @@ class RFitter(object):
             n_pars = order[0] + 1
             r_guess = r_guess * numpy.sqrt(4 * self._tc)
         else:
-            print('model {} is not valid'.format(model))
+            print(f'model {model} is not valid')
             return None, None, None, None
 
         if self.range is not None:
@@ -188,9 +190,6 @@ class RFitter(object):
             self._convert_q2_z()
 
         abs_r_guess = numpy.fabs(r_guess)
-
-        def is_close(a, a0, tolerance=1e-4):
-            return numpy.fabs(a - a0) < tolerance
 
         if 'method' in kwargs and kwargs['method'] == 'minuit':
             residule_func = self._get_residual_func_minuit(model_func, n_pars, order)
@@ -206,9 +205,9 @@ class RFitter(object):
             init_values['error_p1'] = abs_r_guess * 0.01
             init_values['limit_p1'] = (r_guess - 0.5 * abs_r_guess, r_guess + 0.5 * abs_r_guess)
             for i in range(2, n_pars):
-                parameters.append('p{}'.format(i))
-                init_values['p{}'.format(i)] = 0
-                init_values['error_p{}'.format(i)] = 0.01
+                parameters.append(f'p{i}')
+                init_values[f'p{i}'] = 0
+                init_values[f'error_p{i}'] = 0.01
 
             for _ in range(100):
                 fitter = iminuit.Minuit(residule_func, forced_parameters=parameters, pedantic=False, print_level=0, **init_values)
@@ -216,9 +215,9 @@ class RFitter(object):
 
                 p1 = fitter.values['p1']
                 p1_min, p1_max = init_values['limit_p1']
-                if is_close(p1, p1_min, 5e-2 * abs_r_guess) or is_close(p1, p1_max, 5e-2 * abs_r_guess):
+                if math.isclose(p1, p1_min, abs_tol=5e-2 * abs_r_guess) or math.isclose(p1, p1_max, abs_tol=5e-2 * abs_r_guess):
                     for i in range(2, n_pars):
-                        init_values['p{}'.format(i)] = normal()
+                        init_values[f'p{i}'] = normal()
                 else:
                     break
 
@@ -231,21 +230,21 @@ class RFitter(object):
             params.add('p0', value=1.0, vary=float_norm, min=0.95, max=1.05)
             params.add('p1', value=r_guess, min=r_guess - 0.5 * abs_r_guess, max=r_guess + 0.5 * abs_r_guess)
             for i in range(2, n_pars):
-                params.add('p{}'.format(i), value=0)
+                params.add(f'p{i}', value=0)
 
             fitter = Minimizer(residual_func, params)
 
             for _ in range(100):
                 fit_result = fitter.minimize(*args, **kwargs)
 
-                par1 = fit_result.params['p1']
-                if is_close(par1.value, par1.min, 5e-2 * abs_r_guess) or is_close(par1.value, par1.max, 5e-2 * abs_r_guess):
+                p1 = fit_result.params['p1']
+                if math.isclose(p1.value, p1.min, abs_tol=5e-2 * abs_r_guess) or math.isclose(p1.value, p1.max, abs_tol=5e-2 * abs_r_guess):
                     for i in range(2, n_pars):
-                        params['p{}'.format(i)].value = normal()
+                        params[f'p{i}'].value = normal()
                 else:
                     break
 
-            r = par1.value
+            r = p1.value
             chisqr = fit_result.chisqr
 
         if model == 'poly-z':

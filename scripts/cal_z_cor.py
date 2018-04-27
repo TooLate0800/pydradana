@@ -31,7 +31,7 @@ for filename in glob.glob(os.path.join(path, '*.pkl')):
     hist_z_count += result['hist_z_count']
     n_files += 1
 
-print('loaded {} files'.format(n_files))
+print(f'loaded {n_files} files')
 
 averaged_z = hist_z_sum / hist_z_count
 averaged_z[numpy.isnan(averaged_z)] = 0.0

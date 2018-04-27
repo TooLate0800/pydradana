@@ -33,8 +33,8 @@ index_q2 = numpy.argsort(q2_fit)
 with open('bin_errors.dat', 'w') as f:
     f.write('106\n')
     for q2_i, dq2_i, gc_i, dgc_i in zip(q2_fit[index_q2], dq2_fit[index_q2], gc_fit[index_q2], dgc_fit[index_q2]):
-        print('{:8.6f} {:12.6e} {:12.6e}'.format(q2_i, gc_i, dgc_i))
-        f.write('{:8.6f} {:12.6e} {:12.6e}\n'.format(q2_i, gc_i, dgc_i))
+        print(f'{q2_i:8.6f} {gc_i:12.6e} {dgc_i:12.6e}')
+        f.write(f'{q2_i:8.6f} {gc_i:12.6e} {dgc_i:12.6e}\n')
 
 fitter = RFitter()
 fitter.load_data(q2=q2_fit, ge=gc_fit, dge=dgc_fit)
