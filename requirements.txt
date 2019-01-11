@@ -1,5 +1,6 @@
-lmfit>=0.9.6
+iminuit>=1.0.0
+lmfit>=0.9
 matplotlib>=2.0.0
 numpy>=1.14.0
 scipy>=1.0.0
-uproot>=2.8.6
+uproot>=3.0.0

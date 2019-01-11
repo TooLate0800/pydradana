@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+# Author: Chao Gu, 2018
 
 # For python 2-3 compatibility
 from __future__ import division, print_function
@@ -7,38 +7,11 @@ import numbers
 import os
 import shutil
 
+import awkward
 import numpy
 import uproot
 
 __all__ = ['SimReader']
-
-_cache = [None]
-
-
-def setup_cache(path='/tmp', memorysize=0, disksize=0):
-    _cache_dir = os.path.join(path, 'uproot_cache')
-    if disksize > 0:
-        try:
-            os.rmdir(os.path.join(_cache_dir, 'oRDer'))
-            raise FileNotFoundError
-        except FileNotFoundError:
-            if os.path.exists(_cache_dir):
-                shutil.rmtree(_cache_dir)
-            _disk_cache = uproot.cache.DiskCache.create(disksize * 1024**3, _cache_dir)  # 50 GB disk cache
-        except OSError as e:
-            if e.errno == 66:
-                _disk_cache = uproot.cache.DiskCache.join(_cache_dir)
-            else:
-                raise
-        if memorysize > 0:
-            _cache[0] = uproot.cache.MemoryCache(memorysize * 1024**3, spillover=_disk_cache, spill_immediately=True)
-        else:
-            _cache[0] = _disk_cache
-    else:
-        if memorysize > 0:
-            _cache[0] = uproot.cache.MemoryCache(memorysize * 1024**3)
-        else:
-            _cache[0] = None
 
 
 def _get_column(self, index):
@@ -50,10 +23,10 @@ def _get_column(self, index):
     return numpy.array(array_at_index)
 
 
-uproot.interp.jagged.JaggedArray.get_column = _get_column
+awkward.JaggedArray.get_column = _get_column
 
 
-class _EvGenJaggedArray(uproot.interp.jagged.JaggedArray):
+class _EvGenJaggedArray(awkward.JaggedArray):
 
     def __init__(self, jarray):
         super().__init__(jarray.content, jarray.starts, jarray.stops)
@@ -76,8 +49,8 @@ class _EvGen(object):
 
     def __getattr__(self, name):
         if name in self._var_dict:
-            data = self._tree.array(self._var_dict[name], cache=_cache[0], entrystart=self._start, entrystop=self._stop)
-            if isinstance(data, uproot.interp.jagged.JaggedArray):
+            data = self._tree.array(self._var_dict[name], entrystart=self._start, entrystop=self._stop)
+            if isinstance(data, awkward.JaggedArray):
                 data = _EvGenJaggedArray(data)
             setattr(self, name, data)
             return data
@@ -85,7 +58,7 @@ class _EvGen(object):
         raise AttributeError(name)
 
 
-class _DetectorJaggedArray(uproot.interp.jagged.JaggedArray):
+class _DetectorJaggedArray(awkward.JaggedArray):
 
     def __init__(self, jarray):
         super().__init__(jarray.content, jarray.starts, jarray.stops)
@@ -110,8 +83,8 @@ class _Detector(object):
 
     def __getattr__(self, name):
         if name in self._var_dict:
-            data = self._tree.array(self._var_dict[name], cache=_cache[0], entrystart=self._start, entrystop=self._stop)
-            if isinstance(data, uproot.interp.jagged.JaggedArray):
+            data = self._tree.array(self._var_dict[name], entrystart=self._start, entrystop=self._stop)
+            if isinstance(data, awkward.JaggedArray):
                 data = _DetectorJaggedArray(data)
             setattr(self, name, data)
             return data

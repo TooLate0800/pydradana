@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+# Author: Chao Gu, 2018
 
 # For python 2-3 compatibility
 from __future__ import division, print_function

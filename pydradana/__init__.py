@@ -1,4 +1,7 @@
-#!/usr/bin/env python3
+"""
+Analysis Software for PRad Experiment
+=====================================
+"""
 
 __version__ = '1.0.0'
 

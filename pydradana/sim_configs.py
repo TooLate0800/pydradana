@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+# Author: Chao Gu, 2018
 
 import numpy
 from scipy import constants
