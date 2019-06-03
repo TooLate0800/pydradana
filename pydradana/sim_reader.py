@@ -29,7 +29,7 @@ awkward.JaggedArray.get_column = _get_column
 class _EvGenJaggedArray(awkward.JaggedArray):
 
     def __init__(self, jarray):
-        super().__init__(jarray.content, jarray.starts, jarray.stops)
+        super().__init__(jarray.starts, jarray.stops, jarray.content)
 
     def __getitem__(self, index):
         if isinstance(index, numbers.Integral):
@@ -61,7 +61,7 @@ class _EvGen(object):
 class _DetectorJaggedArray(awkward.JaggedArray):
 
     def __init__(self, jarray):
-        super().__init__(jarray.content, jarray.starts, jarray.stops)
+        super().__init__(jarray.starts, jarray.stops, jarray.content)
 
     def __getitem__(self, index):
         if isinstance(index, (numbers.Integral, slice)):
@@ -155,7 +155,7 @@ class SimReader(object):
             found = []
             # for each event, build an is_primary list for the hits in this event
             is_primary_list_list = numpy.split(is_primary, det.PTID.stops)[:-1]
-            for start, is_primary_list in zip(det.PTID.start, is_primary_list_list):
+            for start, is_primary_list in zip(det.PTID.starts, is_primary_list_list):
                 index_list = start + numpy.nonzero(is_primary_list)[0]  # 0 means x axis
                 found.append(index_list[is_good[index_list]][0] if any(is_good[index_list]) else -1)
             return numpy.array(found)
